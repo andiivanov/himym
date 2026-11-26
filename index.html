@@ -22,6 +22,8 @@ button{font-family:inherit;color:inherit}
 .top .wrap{display:flex;align-items:center;gap:20px;min-height:60px}
 .mark{font:500 13px var(--sans);letter-spacing:.18em;text-transform:uppercase}
 .nav{display:flex;gap:4px;margin-left:auto}
+.acct{font:500 12px var(--mono);letter-spacing:.06em;padding:8px 12px;min-height:36px;border:1px solid var(--line-2);border-radius:3px;background:none;color:var(--fg);cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acct:hover{border-color:var(--fg)}@media(max-width:480px){.top .mark{display:none}.nav{margin-left:0}.acct{margin-left:auto}}.acct[hidden]{display:none}
+.authm{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}.authm[hidden]{display:none}.authc{width:min(420px,100%);background:var(--surface)}.authh{font-size:26px;font-weight:500;letter-spacing:-.02em;margin:14px 0 6px}.authp{font-size:14px;margin:0 0 16px}.fld{display:grid;gap:6px;margin-bottom:12px}.fld input{font:15px var(--sans,inherit);padding:11px 12px;border:1px solid var(--line-2);border-radius:3px;background:var(--raise);color:var(--fg)}.fld input:focus{outline:none;border-color:var(--fg)}.aerr{color:var(--down);font-size:14px;margin:0 0 10px}.aerr[hidden]{display:none}
 .nav a{text-decoration:none;padding:9px 14px;border-radius:3px;color:var(--fg-2);font-size:14px}
 .nav a[aria-current=page]{color:var(--fg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
 .nav a:hover{color:var(--fg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
@@ -132,7 +134,7 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 .gres{margin-top:18px;padding:14px 16px;border:1px solid var(--line-2);border-radius:6px;font-size:15px}
 .gres b{font-family:var(--mono);font-weight:500}
 .gres .pts{float:right;font-family:var(--mono)}
-.gside{display:grid;gap:16px}
+.gside{display:grid;gap:16px}.gside .card:has(#lb){grid-column:1/-1}
 .gbig{font-size:44px;line-height:1.1;margin:6px 0 2px}
 .glog{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
 .glog li{display:flex;justify-content:space-between;font:13px var(--mono);color:var(--fg-2);border-top:1px solid var(--line);padding-top:6px}
@@ -226,6 +228,7 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 <header class="top"><div class="wrap">
   <span class="mark">HIMYM · Random</span>
   <nav class="nav" id="nav"><a href="#roll" data-v="roll">Рандом</a><a href="#series" data-v="series">Сериалы</a><a href="#game" data-v="game">Игра</a></nav>
+  <button class="acct" id="acct">Войти</button>
 </div></header>
 <main class="wrap">
 <div class="view" id="v-roll">
@@ -347,6 +350,7 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
       <div class="card pad"><span class="label">Рекорд</span><div class="gbig num" id="gbest">0</div><span class="muted" style="font-size:13px">из 30 возможных</span></div>
       <div class="card pad"><span class="label">Сыграно раундов</span><div class="gbig num" id="gplayed">0</div></div>
       <div class="card pad"><span class="label">Этот раунд</span><ol class="glog" id="glog"></ol></div>
+      <div class="card pad"><span class="label">Игроки · рекорд КЯВВМ · Сол</span><ol class="glog" id="lb"><li><span>Пока никого</span></li></ol></div>
     </div>
   </section>
   <section class="cup" id="g-cup" hidden>
@@ -803,6 +807,75 @@ $('gtabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)r
   [...$('gtabs').children].forEach(x=>x.setAttribute('aria-selected',x===b));$('g-guess').hidden=g!=='guess';$('g-cup').hidden=g!=='cup';save('game-tab',g)});
 {const g=load('game-tab','guess');if(g==='cup')$('gtabs').children[1].click()}
 draw();
+}
+</script>
+<div class="authm" id="authm" hidden>
+  <div class="card pad authc" role="dialog" aria-modal="true" aria-labelledby="authh">
+    <div class="st-top"><span class="label">Аккаунт</span><button class="linkbtn" id="authx">Закрыть</button></div>
+    <h2 class="authh" id="authh">Вход</h2>
+    <p class="muted authp">Прогресс сохраняется в аккаунте и не пропадет при очистке браузера.</p>
+    <label class="fld"><span class="label">Ник</span><input id="anick" autocomplete="username" maxlength="15" placeholder="2-15 символов"></label>
+    <label class="fld"><span class="label">Пароль</span><input id="apass" type="password" autocomplete="current-password" placeholder="От 6 символов"></label>
+    <p class="aerr" id="aerr" hidden></p>
+    <div class="btns"><button class="btn" id="alogin">Войти</button><button class="btn ghost" id="asign">Создать аккаунт</button></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+{
+const $=i=>document.getElementById(i);
+const URL_='https://kqnfgqqqwjoejalvatlh.supabase.co',KEY='sb_publishable_Yc8nax8WSaC-hw6-nrYBBQ_qDL_EybB';
+const K=k=>/^(himym-|tv-|guess-|cup-|game-)/.test(k);
+const btn=$('acct');
+let sb=null;try{sb=window.supabase.createClient(URL_,KEY)}catch(e){}
+if(!sb){btn.hidden=true}else{
+const ls=localStorage;let user=null,nick='',dirty=false,ready=false;
+const email=n=>'u'+[...new TextEncoder().encode(n.trim().toLowerCase())].map(b=>b.toString(16).padStart(2,'0')).join('')+'@dannyfilms.app';
+const snap=()=>{const o={};try{for(let i=0;i<ls.length;i++){const k=ls.key(i);if(K(k))o[k]=ls.getItem(k)}}catch(e){}return o};
+const num=(k,d)=>{try{return JSON.parse(ls.getItem(k))??d}catch(e){return d}};
+const stats=()=>({eps:Object.keys((num('himym-state',{})||{}).watched||{}).length,best_himym:+num('guess-best',0)||0,best_bcs:+num('guess-best-bcs',0)||0});
+const orig=Storage.prototype.setItem;
+Storage.prototype.setItem=function(k,v){orig.call(this,k,v);if(this===ls&&K(k)&&ready)dirty=true};
+async function push(){if(!user||!dirty)return;dirty=false;const {error}=await sb.from('profiles').update({data:snap(),...stats(),updated_at:new Date().toISOString()}).eq('id',user.id);if(error)dirty=true;else lb()}
+setInterval(push,4000);addEventListener('pagehide',push);
+function show(m){$('authm').hidden=!m;$('aerr').hidden=true;if(m)setTimeout(()=>$('anick').focus(),30)}
+function err(t){$('aerr').textContent=t;$('aerr').hidden=false}
+function paint(){btn.textContent=user?nick:'Войти';btn.setAttribute('aria-label',user?'Аккаунт '+nick+', выйти':'Войти')}
+async function lb(){const el=$('lb');if(!el)return;const {data}=await sb.rpc('leaderboard');
+  el.innerHTML=(data&&data.length)?data.map((r,i)=>`<li><span>${i+1}. ${String(r.nick).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span><span>${r.best_himym} · ${r.best_bcs}</span></li>`).join(''):'<li><span>Пока никого</span></li>'}
+async function attach(u,fresh){
+  user=u;const {data:p}=await sb.from('profiles').select('nick,data').eq('id',u.id).maybeSingle();
+  if(!p){nick=(u.user_metadata&&u.user_metadata.nick)||'Игрок';await sb.from('profiles').insert({id:u.id,nick,data:snap(),...stats()});ready=true;paint();lb();return}
+  nick=p.nick;paint();
+  const srv=p.data||{};
+  if(fresh&&Object.keys(srv).length){Object.keys(snap()).forEach(k=>ls.removeItem(k));for(const k in srv)if(K(k))orig.call(ls,k,srv[k]);location.reload();return}
+  ready=true;dirty=!Object.keys(srv).length;lb();
+}
+btn.onclick=async()=>{if(user){if(!confirm('Выйти из аккаунта '+nick+'?'))return;await push();await sb.auth.signOut();Object.keys(snap()).forEach(k=>ls.removeItem(k));location.reload()}else show(true)};
+$('authx').onclick=()=>show(false);
+$('authm').addEventListener('click',e=>{if(e.target.id==='authm')show(false)});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('authm').hidden)show(false)});
+async function go(sign){
+  const n=$('anick').value.trim(),pw=$('apass').value;
+  if(n.length<2)return err('Ник от 2 до 15 символов');if(pw.length<6)return err('Пароль от 6 символов');
+  $('alogin').disabled=$('asign').disabled=true;
+  try{
+    if(sign){
+      const {data:t}=await sb.rpc('nick_taken',{n});if(t)return err('Этот ник уже занят');
+      const {data,error}=await sb.auth.signUp({email:email(n),password:pw,options:{data:{nick:n}}});
+      if(error)return err(/registered/i.test(error.message)?'Этот ник уже занят':'Не получилось: '+error.message);
+      show(false);await attach(data.user,false);
+    }else{
+      const {data,error}=await sb.auth.signInWithPassword({email:email(n),password:pw});
+      if(error)return err('Неверный ник или пароль');
+      show(false);await attach(data.user,true);
+    }
+  }finally{$('alogin').disabled=$('asign').disabled=false}
+}
+$('alogin').onclick=()=>go(false);$('asign').onclick=()=>go(true);
+$('apass').addEventListener('keydown',e=>{if(e.key==='Enter')go(false)});
+sb.auth.getSession().then(({data})=>{if(data.session)attach(data.session.user,false);else{ready=true;lb()}});
+}
 }
 </script>
 </body>

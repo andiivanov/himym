@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Рандомайзер HIMYM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: торговый терминал UFUND, спокойный и точный
+IDEA: табло результата как карточка турнира, список сериалов как таблица лидеров
+PICTURE: огромный моноширинный S·E на светлой карточке с тонкой сеткой
+COLOUR and TYPE: монохром UFUND (#F3F3F0 / #050505), цвет только у статусов; Geist + Geist Mono
+LAYOUT: верхняя панель, результат + фильтр в две колонки, ниже таблица сериалов, котики в конце
+*/
+:root{--bg:#F3F3F0;--surface:#FBFBF9;--raise:#FFFFFF;--line:#DCDCD7;--line-2:#C6C6C0;--fg:#0E0E0E;--fg-2:#4A4A46;--fg-3:#7A7A75;--accent:#0E0E0E;--on-accent:#F7F7F4;--up:#14874A;--down:#C23B32;--warn:#9A6A12;--da:#3447C8;--shadow:0 1px 0 rgba(255,255,255,.9) inset,0 18px 40px rgba(20,20,15,.07);--sans:'Geist','Inter','Helvetica Neue',Arial,sans-serif;--mono:'Geist Mono',ui-monospace,Menlo,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#050505;--surface:#0C0C0C;--raise:#121212;--line:#232323;--line-2:#363636;--fg:#F3F3EF;--fg-2:#B4B4AE;--fg-3:#80807A;--accent:#F3F3EF;--on-accent:#070707;--up:#5BD68A;--down:#F06A6A;--warn:#E3B04B;--da:#8FA8FF;--shadow:0 1px 0 rgba(255,255,255,.07) inset,0 24px 60px rgba(0,0,0,.55);color-scheme:dark}}
+:root[data-theme=dark]{--bg:#050505;--surface:#0C0C0C;--raise:#121212;--line:#232323;--line-2:#363636;--fg:#F3F3EF;--fg-2:#B4B4AE;--fg-3:#80807A;--accent:#F3F3EF;--on-accent:#070707;--up:#5BD68A;--down:#F06A6A;--warn:#E3B04B;--da:#8FA8FF;--shadow:0 1px 0 rgba(255,255,255,.07) inset,0 24px 60px rgba(0,0,0,.55);color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:clip}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 max(16px,4vw)}
+.label{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.muted{color:var(--fg-3)}
+.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;min-height:60px}
+.mark{font:500 13px var(--sans);letter-spacing:.18em;text-transform:uppercase}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a{text-decoration:none;padding:9px 14px;border-radius:3px;color:var(--fg-2);font-size:14px}
+.nav a[aria-current=page]{color:var(--fg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
+.nav a:hover{color:var(--fg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
+main.wrap{padding-top:28px;padding-bottom:72px}
+html{scrollbar-gutter:stable;overflow-y:scroll}
+.phead .lead{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none}
+@media(max-width:700px){.phead .lead{white-space:normal}}
+.view{animation:vin .22s ease}
+@keyframes vin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.view{animation:none}}
+.h1{font-size:clamp(34px,5vw,52px);line-height:.98;font-weight:500;letter-spacing:-.045em;margin:10px 0 12px;text-wrap:balance}
+.h2{font-size:22px;font-weight:500;letter-spacing:-.025em;margin:0}
+.lead{color:var(--fg-2);max-width:56ch;margin:0}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 32px;flex-wrap:wrap;margin:56px 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
+.pad{padding:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 22px;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line-2)}
+.btn.ghost:hover{border-color:var(--fg);opacity:1}
+.btn.sm{min-height:36px;padding:0 14px;font-size:13px}
+.linkbtn{background:none;border:0;padding:8px 0;min-height:44px;color:var(--fg-2);font-size:14px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.hero{display:grid;grid-template-columns:1fr;gap:16px;margin-top:20px}
+.stage{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;column-gap:24px;min-height:300px}
+.stage .st-top{grid-column:1/-1}
+.stage>div:not(.st-top){grid-column:1;grid-row:2;align-self:end}
+.stage::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:40px 40px;opacity:.45;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%);pointer-events:none}
+.stage>*{position:relative}
+.st-top{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.live{display:inline-flex;align-items:center;gap:8px;font-size:12px;padding:4px 10px;border-radius:3px;border:1px solid var(--line-2);color:var(--fg)}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px color-mix(in srgb,var(--up) 22%,transparent)}
+.res{font:400 clamp(64px,12vw,124px)/1 var(--mono);letter-spacing:-.06em;font-variant-numeric:tabular-nums;white-space:nowrap;margin:28px 0 6px}
+.res .dot{color:var(--fg-3);margin:0 .06em}
+.res-lab{color:var(--fg-2);font-size:15px;min-height:22px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;align-items:center}
+.kbd{font:500 11px var(--mono);border:1px solid var(--line-2);border-radius:3px;padding:2px 6px;color:var(--fg-3)}
+.dog{grid-column:2;grid-row:2;align-self:end;width:clamp(190px,19vw,240px);height:auto;margin-bottom:-24px;opacity:0;transform:translateY(30%);transition:opacity .2s,transform .5s cubic-bezier(.2,.9,.3,1.25);pointer-events:none}
+.dog.on{opacity:1;transform:none}
+.res{font-size:clamp(56px,9vw,124px)}
+@media(max-width:600px){.stage{grid-template-columns:1fr}.dog{grid-column:1;grid-row:3;justify-self:center;width:230px;margin:16px 0 -18px}}
+.after[hidden]{display:none}
+.after{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:16px}
+#seen[aria-pressed=true]{background:var(--fg);color:var(--on-accent);border-color:var(--fg)}
+.rate{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stars{display:inline-flex}
+.star{width:30px;height:36px;border:0;background:none;padding:0;cursor:pointer;font-size:22px;line-height:1;color:var(--line-2)}
+.star.on{color:#F5C518}
+.star:hover{transform:scale(1.15)}
+.rv{font-size:14px;color:var(--fg-2);min-width:44px}
+.rv b{color:var(--fg);font-weight:500}
+.stage.leg{box-shadow:inset 0 0 0 1px #F5C518,var(--shadow)}
+.stage.leg .live::before{background:#F5C518;box-shadow:0 0 0 3px rgba(245,197,24,.25)}
+.dog.on.wow{animation:wow .7s ease}
+@keyframes wow{0%{transform:translateY(30%)}50%{transform:translateY(-6%) rotate(-4deg)}75%{transform:rotate(3deg)}100%{transform:none}}
+.chip{position:relative;overflow:hidden}
+.chip .pb{position:absolute;left:0;bottom:0;height:3px;background:var(--fg);opacity:.85}
+.lvl{font:500 13px var(--sans)}
+.xp{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.xp i{display:block;height:100%;background:var(--fg);width:0;transition:width .4s}
+.xpt{font-size:12px;margin-top:8px;font-family:var(--mono)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.stats div{display:flex;flex-direction:column;gap:2px}
+.stats b{font-size:24px;font-weight:400}
+.stats span{font-size:12px;color:var(--fg-3)}
+.ach{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ach li{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;opacity:.45}
+.ach li.got{opacity:1;border-color:var(--line-2);background:var(--raise)}
+.ach b{font-size:13px;font-weight:500}
+.ach li.got b::before{content:"★ ";color:#F5C518}
+.ach span{font-size:12px;color:var(--fg-3)}
+.toplist{list-style:none;margin:0;padding:0;counter-reset:t}
+.toplist li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:14px;counter-increment:t}
+.toplist li:first-child{border-top:0}
+.toplist li::before{content:counter(t);font:12px var(--mono);color:var(--fg-3)}
+.toplist .sc{font-family:var(--mono);white-space:nowrap}
+.toplist .sc::before{content:"★ ";color:#F5C518}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140%);background:var(--fg);color:var(--on-accent);padding:12px 18px;border-radius:6px;font-size:14px;z-index:50;transition:transform .35s,visibility .35s;max-width:calc(100vw - 32px)}
+.toast{visibility:hidden}.toast.on{transform:translate(-50%,0);visibility:visible}
+.next{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.nx-res{margin:8px 0 0;font-size:18px;letter-spacing:-.01em}
+.nx-res .en{color:var(--fg-3)}
+.nx-ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sel{display:flex;align-items:center;gap:8px;font-size:14px}
+.sel select{font:15px var(--sans);min-height:44px;padding:0 10px;border-radius:3px;border:1px solid var(--line-2);background:var(--raise);color:var(--fg)}
+.myr{background:none;border:1px solid var(--line-2);border-radius:3px;min-height:36px;padding:0 10px;font:500 12px var(--mono);color:var(--fg-2);cursor:pointer;white-space:nowrap}
+.myr.has{color:var(--fg)}
+.myr.has::first-letter{color:#F5C518}
+.acts{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.rrow{grid-column:2/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:6px}
+.imdbr{display:inline-flex;align-items:center;gap:5px;font:500 12px var(--mono);padding:2px 7px;border-radius:3px;background:#F5C518;color:#121212;white-space:nowrap}
+.imdbr b{font-weight:600}
+.show.hot{background:color-mix(in srgb,#F5C518 8%,transparent)}
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.star{width:28px;font-size:20px}.acts{grid-column:2;justify-content:flex-start}.rrow{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.dog.on.wow{animation:none}}
+.gm{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;margin-top:20px;align-items:start}
+.gdesc{font-size:clamp(20px,2.2vw,26px);line-height:1.35;letter-spacing:-.015em;margin:26px 0 24px;min-height:3.9em;text-wrap:pretty}
+.gpick{display:grid;gap:10px}
+.gseas{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.geps{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;min-height:84px;align-content:start}
+.gb{min-height:40px;border-radius:3px;border:1px solid var(--line);background:var(--raise);font:500 14px var(--mono);color:var(--fg-2);cursor:pointer;padding:0}
+.gb:hover{border-color:var(--line-2);color:var(--fg)}
+.gb[aria-pressed=true]{background:var(--fg);border-color:var(--fg);color:var(--on-accent)}
+.gb.ok{background:var(--up);border-color:var(--up);color:#fff}
+.gb.bad{border-color:var(--down);color:var(--down)}
+.gb:disabled{cursor:default}
+.gb.bad[aria-pressed=true]{background:transparent;border-color:var(--down);color:var(--down)}
+.btn[hidden],.gres[hidden]{display:none}
+.gres{margin-top:18px;padding:14px 16px;border:1px solid var(--line-2);border-radius:6px;font-size:15px}
+.gres b{font-family:var(--mono);font-weight:500}
+.gres .pts{float:right;font-family:var(--mono)}
+.gside{display:grid;gap:16px}
+.gbig{font-size:44px;line-height:1.1;margin:6px 0 2px}
+.glog{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.glog li{display:flex;justify-content:space-between;font:13px var(--mono);color:var(--fg-2);border-top:1px solid var(--line);padding-top:6px}
+.glog li:first-child{border-top:0;padding-top:0}
+@media(max-width:900px){.gm{grid-template-columns:1fr}.gside{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.gseas{grid-template-columns:repeat(5,minmax(0,1fr))}.geps{grid-template-columns:repeat(6,minmax(0,1fr))}.gside{grid-template-columns:1fr 1fr}.gside .card:last-child{grid-column:1/-1}}
+.cup{display:grid;gap:16px;margin-top:0}
+.cup[hidden]{display:none}.gm[hidden]{display:none}
+.cq{font-size:clamp(20px,2.2vw,26px);letter-spacing:-.015em;margin:22px 0 18px}
+.duel{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+.vs{align-self:center;font:500 13px var(--mono);color:var(--fg-3)}
+.pick{display:flex;flex-direction:column;gap:10px;text-align:left;padding:22px;border-radius:6px;border:1px solid var(--line-2);background:var(--raise);cursor:pointer;min-height:170px;transition:border-color .15s,transform .15s}
+.pick:hover{border-color:var(--fg);transform:translateY(-2px)}
+.pick .pn{font-size:clamp(20px,2.2vw,28px);font-weight:500;letter-spacing:-.02em;line-height:1.1}
+.pick .pe{color:var(--fg-3);font-size:14px}
+.pick .pm{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;align-items:center}
+.pick .key{font:500 11px var(--mono);color:var(--fg-3);border:1px solid var(--line-2);border-radius:3px;padding:2px 6px}
+.cbar{height:4px;background:var(--line);border-radius:2px;margin-top:20px;overflow:hidden}.cbar i{display:block;height:100%;background:var(--fg);width:0;transition:width .3s}
+.csz{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}.csz button{font:500 12px var(--mono);padding:8px 12px;min-height:36px;background:none;border:0;border-left:1px solid var(--line);color:var(--fg-3);cursor:pointer}.csz button:first-child{border-left:0}.csz button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.gser{display:inline-flex;margin-top:14px}
+.cctl{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;margin-top:10px}
+.cwin[hidden],#cduel[hidden]{display:none}
+.cwin .wt{font-size:clamp(34px,5vw,56px);font-weight:500;letter-spacing:-.04em;line-height:1;margin:12px 0 6px}
+.cwin .ws{color:var(--fg-3);margin:0 0 18px}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.podium div{border:1px solid var(--line);border-radius:6px;padding:12px}
+.podium b{display:block;font-weight:500;margin-top:4px}
+@media(max-width:600px){.duel{grid-template-columns:1fr}.vs{justify-self:center}.pick{min-height:120px}.podium{grid-template-columns:1fr}}
+.side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.side .wide{grid-column:1/-1}
+.prof{display:flex;flex-direction:column;justify-content:space-between;gap:20px}
+.lvbox .lvl{font:500 clamp(30px,3.4vw,40px)/1.05 var(--sans);letter-spacing:-.03em;margin-bottom:14px}
+.prof .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;margin-top:0}
+.prof .stats b{font-size:34px}
+.prof .xpt{margin-bottom:0}
+.ach{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+@media(max-width:900px){.ach{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.grid9{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:58px;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--raise);cursor:pointer;text-align:left;font:500 18px var(--mono);letter-spacing:-.02em;color:var(--fg-3)}
+.chip small{font:400 11px var(--mono);letter-spacing:.04em;color:var(--fg-3)}
+.chip[aria-pressed=true]{border-color:var(--fg);color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.chip:hover{border-color:var(--line-2)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+.tgl{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:44px;font-size:14px;color:var(--fg-2)}
+.tgl input{appearance:none;width:36px;height:20px;border-radius:999px;background:var(--line-2);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.tgl input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--raise);transition:transform .15s}
+.tgl input:checked{background:var(--fg)}
+.tgl input:checked::after{transform:translateX(16px);background:var(--on-accent)}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.hist li{font:500 12px var(--mono);border:1px solid var(--line);border-radius:3px;padding:4px 8px;color:var(--fg-2);background:var(--raise)}
+.hist li:first-child{border-color:var(--fg);color:var(--fg)}
+.empty{color:var(--fg-3);font-size:14px;margin:0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:0;padding:9px 14px;border-radius:3px;color:var(--fg-2);font-size:14px;cursor:pointer;min-height:40px}
+.tab small{font-family:var(--mono);font-size:12px;color:var(--fg-3);margin-left:6px}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected=true]{color:var(--fg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--fg-3);padding:14px 20px;border-bottom:1px solid var(--line)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.shows{list-style:none;margin:0;padding:0}
+.show{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 20px;border-top:1px solid var(--line)}
+.show:first-child{border-top:0}
+.show:hover{background:var(--raise)}
+.show h3{margin:0;font-size:15px;font-weight:500;letter-spacing:-.01em}
+.show h3 .en{font-weight:400;color:var(--fg-3)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:4px;font-size:13px;color:var(--fg-3)}
+.note2{font-family:var(--mono);font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;padding:3px 9px;border-radius:3px;border:1px solid var(--line-2);color:var(--fg-2);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c,var(--fg-3));flex:none}
+.legend .badge{border:0;padding:0}
+.b-new{--c:var(--up);color:var(--fg)}.b-new::before{box-shadow:0 0 0 3px color-mix(in srgb,var(--up) 22%,transparent)}
+.b-date{--c:var(--da)}.b-ren{--c:var(--warn)}.b-unk{--c:var(--down)}.b-ended{--c:var(--fg-3);color:var(--fg-3)}
+.chk{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer}
+.chk::before{content:"✓";display:grid;place-items:center;width:20px;height:20px;border-radius:3px;border:1px solid var(--line-2);background:var(--raise);color:transparent;font:600 13px/1 var(--sans);transition:background .12s,border-color .12s}
+.chk:hover::before{border-color:var(--fg)}
+.chk[aria-pressed=true]::before{background:var(--fg);border-color:var(--fg);color:var(--on-accent)}
+.imdb{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border-radius:3px;border:1px solid var(--line-2);color:var(--fg);font:500 12px var(--mono);letter-spacing:.06em;text-decoration:none;white-space:nowrap}
+.imdb:hover{border-color:var(--fg)}
+.cats .stk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;padding:24px}
+.stk img{width:100%;height:auto;display:block;transition:transform .25s}
+.stk img:hover{transform:translateY(-4px)}
+.stk .c1{border-radius:6px}
+.foot{border-top:1px solid var(--line);padding:20px 0 28px;font-size:12px;color:var(--fg-3)}
+.foot p{margin:0 0 6px}
+@media(max-width:900px){.side{grid-template-columns:1fr}}
+@media(max-width:600px){.mark{font-size:11px;letter-spacing:.1em;white-space:nowrap}.top .wrap{gap:10px}.nav a{padding:8px 9px;font-size:13px}.badge{white-space:normal}.show{grid-template-columns:44px minmax(0,1fr);padding:12px 12px}.imdb{grid-column:2;justify-self:start}.legend{padding:12px}.pad{padding:18px}.cats .stk{grid-template-columns:repeat(2,minmax(0,1fr));padding:16px}.stk img:last-child{grid-column:1/-1;max-width:70%;margin:0 auto}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <span class="mark">HIMYM · Random</span>
+  <nav class="nav" id="nav"><a href="#roll" data-v="roll">Рандом</a><a href="#series" data-v="series">Сериалы</a><a href="#game" data-v="game">Игра</a></nav>
+</div></header>
+<main class="wrap">
+<div class="view" id="v-roll">
+  <header class="phead">
+    <span class="label">208 серий · 9 сезонов</span>
+    <h1 class="h1">Какую серию смотрим сегодня?</h1>
+    <p class="lead">«Как я встретил вашу маму»: сначала случайный сезон, затем серия в нем.</p>
+  </header>
+
+  <section class="hero" id="rollbox">
+    <div class="card pad stage" id="stage" aria-live="polite">
+      <img class="dog" id="dog" src="data:image/webp;base64,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" alt="" aria-hidden="true">
+      <div class="st-top"><span class="label" id="stlabel">Результат</span><span class="live" id="livepill">Готово к броску</span></div>
+      <div>
+        <div class="res">S<span id="s">––</span><span class="dot">·</span>E<span id="e">––</span></div>
+        <div class="res-lab" id="lab"></div>
+        <div class="after" id="after" hidden>
+          <button class="btn ghost sm" id="seen" aria-pressed="false">Посмотрел</button>
+          <div class="rate"><span class="label">Оценка</span><div class="stars" id="epstars" role="group" aria-label="Оценка серии"></div><span class="rv num" id="epval"></span></div>
+        </div>
+        <div class="btns">
+          <button class="btn" id="go">Выбить серию</button>
+          <button class="btn ghost" id="copy">Скопировать</button>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card pad prof">
+        <div class="st-top"><span class="label">Профиль</span><span class="label">Уровень</span></div>
+        <div class="lvbox"><div class="lvl" id="lvl"></div><div class="xp"><i id="xpbar"></i></div><div class="xpt muted" id="xpt"></div></div>
+        <div class="stats">
+          <div><b class="num" id="stW">0</b><span>из 208 серий</span></div>
+          <div><b class="num" id="stStreak">0</b><span>дней подряд</span></div>
+          <div><b class="num" id="stRated">0</b><span>оценено</span></div>
+          <div><b class="num" id="stTv">0</b><span>сериалов</span></div>
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="st-top" style="margin-bottom:14px"><span class="label">Сезоны в броске</span><button class="linkbtn" id="all">Выбрать все</button></div>
+        <div class="grid9" id="seasons"></div>
+        <div class="row" style="margin-top:14px;flex-direction:column;align-items:flex-start;gap:0">
+          <label class="tgl"><input type="checkbox" id="norep"> Без повторов, пока не выпадут все</label>
+          <label class="tgl"><input type="checkbox" id="unseen"> Только непросмотренные</label>
+          <label class="tgl"><input type="checkbox" id="favs"> Только любимые, оценка 8+</label>
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="st-top" style="margin-bottom:12px"><span class="label">Мой топ серий</span></div>
+        <ol class="toplist" id="top"></ol>
+        <p class="empty" id="topempty">Оцените серии после броска, и здесь появится ваш топ.</p>
+      </div>
+      <div class="card pad">
+        <div class="st-top" style="margin-bottom:12px"><span class="label">Уже выпадало</span><button class="linkbtn" id="clear" hidden>Очистить</button></div>
+        <ol class="hist" id="hist"></ol>
+        <p class="empty" id="empty">Пока пусто.</p>
+      </div>
+      <div class="card pad wide">
+        <div class="st-top" style="margin-bottom:14px"><span class="label">Ачивки</span><span class="muted num" style="font-size:13px" id="achc"></span></div>
+        <ul class="ach" id="ach"></ul>
+      </div>
+
+    </div>
+  </section>
+
+
+</div>
+<div class="view" id="v-series" hidden>
+  <header class="phead">
+    <span class="label" id="tvcount">Сериалы · статусы и рейтинги IMDb</span>
+    <h1 class="h1">Сериалы</h1>
+    <p class="lead">Что посмотрено, что ждет новых сезонов и что начать следующим.</p>
+  </header>
+  <section id="serieslist">
+    <div class="tabs" role="tablist" id="tabs" style="margin-top:20px;margin-bottom:16px"></div>
+    <div class="card pad next">
+      <div><span class="label">Что начать следующим?</span><p class="nx-res" id="nxres">Рандом выберет сериал из списка «Хочу посмотреть».</p></div>
+      <div class="nx-ctl">
+        <label class="sel"><span class="muted">IMDb от</span><select id="nxmin"><option value="0">любой</option><option value="8">8,0</option><option value="8.5">8,5</option></select></label>
+        <button class="btn" id="nxgo">Выбрать сериал</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="legend">
+        <span class="badge b-new">Новый сезон вышел</span>
+        <span class="badge b-date">Есть дата</span>
+        <span class="badge b-ren">Продлен</span>
+        <span class="badge b-unk">Под вопросом</span>
+        <span class="badge b-ended">Завершен</span>
+      </div>
+      <ul class="shows" id="shows"></ul>
+    </div>
+  </section>
+</div>
+<div class="view" id="v-game" hidden>
+  <header class="phead">
+    <span class="label">2 игры</span>
+    <h1 class="h1">Игры</h1>
+    <p class="lead">Угадай серию по описанию или выбери свой сериал №1 в турнире.</p>
+  </header>
+  <div class="tabs" role="tablist" id="gtabs" style="margin-top:20px;margin-bottom:16px">
+    <button class="tab" role="tab" data-g="guess" aria-selected="true">Угадай серию</button>
+    <button class="tab" role="tab" data-g="cup" aria-selected="false">Турнир сериалов</button>
+  </div>
+  <section class="gm" id="g-guess">
+    <div class="card pad gcard">
+      <div class="st-top"><span class="label" id="gq">Вопрос 1 из 10</span><span class="live" id="gscore">0 очков</span></div>
+      <div class="csz gser" id="gser" role="group" aria-label="Сериал"><button data-k="himym">КЯВВМ</button><button data-k="bcs">Лучше звоните Солу</button></div>
+      <p class="gdesc" id="gdesc"></p>
+      <div class="gpick">
+        <span class="label">Сезон</span>
+        <div class="gseas" id="gseas"></div>
+        <span class="label">Серия</span>
+        <div class="geps" id="geps"><span class="muted" style="font-size:14px">Сначала выберите сезон</span></div>
+      </div>
+      <div class="gres" id="gres" hidden></div>
+      <div class="btns"><button class="btn" id="gok" disabled>Ответить</button><button class="btn ghost" id="gnext" hidden>Дальше</button></div>
+    </div>
+    <div class="gside">
+      <div class="card pad"><span class="label">Рекорд</span><div class="gbig num" id="gbest">0</div><span class="muted" style="font-size:13px">из 30 возможных</span></div>
+      <div class="card pad"><span class="label">Сыграно раундов</span><div class="gbig num" id="gplayed">0</div></div>
+      <div class="card pad"><span class="label">Этот раунд</span><ol class="glog" id="glog"></ol></div>
+    </div>
+  </section>
+  <section class="cup" id="g-cup" hidden>
+    <div class="card pad" id="cduel">
+      <div class="st-top"><span class="label" id="cround">Раунд</span><span class="live" id="cmatch">Матч</span></div>
+      <p class="cq">Какой сериал лучше?</p>
+      <div class="duel" id="duel"></div>
+      <div class="cbar"><i id="cprog"></i></div>
+      <div class="cctl">
+        <button class="linkbtn" id="cundo">Отменить выбор</button>
+        <div class="csz" id="csize" role="group" aria-label="Размер сетки"><button data-n="8">8</button><button data-n="16">16</button><button data-n="32">32</button><button data-n="0">Все</button></div>
+        <label class="tgl"><input type="checkbox" id="conly"> Только из «Посмотрел»</label>
+        <button class="linkbtn" id="creset">Начать заново</button>
+      </div>
+    </div>
+    <div class="card pad cwin" id="cwin" hidden></div>
+    <div class="card pad"><span class="label">Прошлые чемпионы</span><ol class="glog" id="chist"></ol></div>
+  </section>
+</div>
+</main>
+<footer class="foot"><div class="wrap">
+  <p>Статусы сезонов актуальны на 26 ноября 2026 года.</p>
+</div></footer>
+<div class="toast" id="toast" role="status"></div>
+<script>
+{
+const $=id=>document.getElementById(id);
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const tag=(s,e)=>`S${pad(s)}E${pad(e)}`;
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+
+/* ---------- данные ---------- */
+const EP=[22,22,20,24,24,24,24,24,24];
+const L={S01E01:'Pilot',S01E10:'The Pineapple Incident',S01E22:'Come On',S02E09:'Slap Bet',S02E22:'Something Blue',S03E09:'Slapsgiving',S06E13:'Bad News',S09E16:'How Your Mother Met Me',S09E23:'Last Forever, часть 1',S09E24:'Last Forever, часть 2'};
+const S=[
+// [группа, рус, eng, год, моя заметка, тип статуса, текст статуса, imdb id или ""]
+['new','Медведь','The Bear',2022,'S4 · IMDb 8,5','new','Вышел финальный S5 (25 июня 2026)','tt14452776'],
+['new','Гангстерленд','MobLand',2025,'S1 · IMDb 8,3','new','Вышел S2, сентябрь-ноябрь 2026',''],
+['new','Люпен','Lupin',2021,'S4 · IMDb 7,5','new','Вышел S4 (23 октября 2026)','tt2531336'],
+['w','КЯВВМ','How I Met Your Mother',2005,'IMDb 8,3','ended','Завершен','tt0460649'],
+['w','Клан Сопрано','The Sopranos',1999,'IMDb 9,2','ended','Завершен','tt0141842'],
+['w','Лучше звоните Солу','Better Call Saul',2015,'IMDb 9,0','ended','Завершен','tt3032476'],
+['w','Тьма','Dark',2017,'IMDb 8,7','ended','Завершен','tt5753856'],
+['w','Сообщество','Community',2009,'IMDb 8,5','ended','Завершен','tt1439629'],
+['w','Пацаны','The Boys',2019,'IMDb 8,6','ended','Завершен, финальный S5 вышел в мае 2026','tt1190634'],
+['w','Игры биста','Squid Game',2021,'IMDb 8,0','ended','Завершен','tt10919420'],
+['w','Книжная лавка Блэка','Black Books',2000,'IMDb 8,4','ended','Завершен','tt0262150'],
+['w','Озарк','Ozark',2017,'IMDb 8,4','ended','Завершен','tt5071412'],
+['w','Американская семейка','Modern Family',2009,'S1 из 11, не зашел · IMDb 8,5','ended','Завершен','tt1442437'],
+['w','Парки и зоны отдыха','Parks and Recreation',2009,'не зашло · IMDb 8,6','ended','Завершен','tt1266020'],
+['w','Задержка в развитии','Arrested Development',2003,'IMDb 8,6','ended','Завершен','tt0367279'],
+['w','Разделение','Severance',2022,'S2 · IMDb 8,7','ren','S3 снимают, выход ожидается в 2027','tt11280740'],
+['w','Плюрибус','Pluribus',2025,'S1 · IMDb 7,9','ren','S2 снимают с осени 2026, выход ожидается в конце 2027',''],
+['w','Фоллаут','Fallout',2024,'S2 · IMDb 8,3','ren','S3 снимают, выход ожидается в 2027','tt12637874'],
+['w','Лэндмен','Landman',2024,'S2 · IMDb 8,2','ren','S3 снимают, выход ожидается в 2027',''],
+['w','Извне','From',2022,'S4 · IMDb 7,8','ren','S5 финальный, выход ожидается в 2027',''],
+['w','Черное зеркало','Black Mirror',2011,'S7 · IMDb 8,7','ren','S8 снимают, выход ожидается в 2027','tt2085059'],
+['w','День Шакала','The Day of the Jackal',2024,'S1 · IMDb 8,1','date','S2 выйдет в марте 2027',''],
+['w','Киностудия','The Studio',2025,'S1 · IMDb 8,0','ren','S2 сняли, дата не объявлена',''],
+['w','Одни из нас','The Last of Us',2023,'S2 · IMDb 8,7','ren','S3 выйдет в 2027','tt3581920'],
+['w','Друзья и соседи','Your Friends & Neighbors',2025,'S2 · IMDb 7,6','ren','Продлен на S3, выход ожидается весной 2027',''],
+['w','Ты','You',2018,'S2, не зашел · IMDb 7,7','ended','Завершен','tt7335184'],
+['w','Настоящий детектив','True Detective',2014,'IMDb 8,9','unk','Антология, новый сезон без даты','tt2356777'],
+['w','Карточный домик','House of Cards',2013,'IMDb 8,6','ended','Завершен','tt1856010'],
+['w','Твин Пикс','Twin Peaks',1990,'IMDb 8,8','ended','Завершен','tt0098936'],
+['w','Доктор Хаус','House M.D.',2004,'IMDb 8,7','ended','Завершен','tt0412142'],
+['w','Битва за Uber','Super Pumped: The Battle for Uber',2022,'IMDb 6,8','ended','Завершен',''],
+['w','WeCrashed','WeCrashed',2022,'IMDb 7,2','ended','Мини-сериал',''],
+['w','Остановись и гори','Halt and Catch Fire',2014,'IMDb 8,4','ended','Завершен','tt2543312'],
+['w','Под куполом','Under the Dome',2013,'IMDb 6,5','ended','Завершен','tt1553656'],
+['w','11.22.63','11.22.63',2016,'IMDb 8,1','ended','Мини-сериал','tt2879552'],
+['w','Шерлок','Sherlock',2010,'IMDb 9,0','ended','Завершен','tt1475582'],
+['w','Патрик Мелроуз','Patrick Melrose',2018,'IMDb 8,2','ended','Мини-сериал',''],
+['w','Чернобыль','Chernobyl',2019,'IMDb 9,3','ended','Мини-сериал','tt7366338'],
+['w','Отбросы','Misfits',2009,'IMDb 8,2','ended','Завершен','tt1548850'],
+['w','Ход королевы','The Queen\'s Gambit',2020,'IMDb 8,5','ended','Мини-сериал','tt10048342'],
+['w','Фарго','Fargo',2014,'IMDb 8,9','unk','Антология, новый сезон без даты','tt2802850'],
+['w','Грань','Fringe',2008,'IMDb 8,4','ended','Завершен','tt1119644'],
+['w','Мистер Робот','Mr. Robot',2015,'IMDb 8,5','ended','Завершен','tt4158110'],
+['w','Кремниевая долина','Silicon Valley',2014,'IMDb 8,5','ended','Завершен','tt2575988'],
+['w','Сегун','Shogun',2024,'S1 · IMDb 8,6','ren','S2 снимают, выход ожидается в 2027','tt2788316'],
+['w','Два с половиной человека','Two and a Half Men',2003,'IMDb 7,1','ended','Завершен','tt0369179'],
+['w','Теория большого взрыва','The Big Bang Theory',2007,'IMDb 8,2','ended','Завершен','tt0898266'],
+['w','Игра престолов','Game of Thrones',2011,'IMDb 9,2','ended','Завершен','tt0944947'],
+['w','Рик и Морти','Rick and Morty',2013,'IMDb 9,1','ren','Продлен до S12','tt2861424'],
+['w','Безумцы','Mad Men',2007,'IMDb 8,7','ended','Завершен','tt0804503'],
+['w','Берсерк','Berserk',1997,'IMDb 8,7','ended','Завершен','tt0318871'],
+['w','Братья по оружию','Band of Brothers',2001,'IMDb 9,4','ended','Мини-сериал','tt0185906'],
+['w','Теория лжи','Lie to Me',2009,'IMDb 8,0','ended','Завершен','tt1235099'],
+['w','Ганнибал','Hannibal',2013,'IMDb 8,5','ended','Завершен','tt2243973'],
+['w','Менталист','The Mentalist',2008,'IMDb 8,2','ended','Завершен','tt1196946'],
+['w','Достать ножи','Knives Out',2019,'IMDb 7,9','ended','Серия фильмов','tt8946378'],
+['w','Джентльмены','The Gentlemen',2024,'S1 · IMDb 8,0','ren','Продлен на S2','tt13210838'],
+['w','Южный парк','South Park',1997,'IMDb 8,7','ren','Продолжает выходить','tt0121955'],
+['w','Дневники вампира','The Vampire Diaries',2009,'IMDb 7,7','ended','Завершен','tt1405406'],
+['w','Побег','Prison Break',2005,'IMDb 8,3','ended','Завершен','tt0455275'],
+['w','Остаться в живых','Lost',2004,'IMDb 8,3','ended','Завершен','tt0411008'],
+['w','Друзья','Friends',1994,'IMDb 8,9','ended','Завершен','tt0108778'],
+['w','Нарко','Narcos',2015,'IMDb 8,8','ended','Завершен','tt2707408'],
+['w','Офис','The Office',2005,'IMDb 9,0','ended','Завершен','tt0386676'],
+['w','Спартак','Spartacus',2010,'IMDb 8,5','ended','Завершен','tt1442449'],
+['w','Острые козырьки','Peaky Blinders',2013,'IMDb 8,7','ended','Завершен','tt2442560'],
+['w','Древние','The Originals',2013,'IMDb 8,2','ended','Завершен','tt2632424'],
+['wl','Охотник за разумом','Mindhunter',2017,'S2 · IMDb 8,6','ended','Завершен на S2','tt5290382'],
+['wl','Тед Лассо','Ted Lasso',2020,'S4 · IMDb 8,7','new','Вышел S4, август-октябрь 2026','tt10986410'],
+['wl','Терапия','Shrinking',2023,'S3 · IMDb 8,2','ren','Продлен на S4, выход ожидается в 2027',''],
+['wl','Рустер','Rooster',2026,'S1 · IMDb 7,6','ren','Продлен на S2, дата не объявлена',''],
+['wl','Засланец из космоса','Resident Alien',2021,'S4 · IMDb 8,0','ended','Завершен на S4',''],
+['wl','Табу','Taboo',2017,'S1 · IMDb 8,3','unk','S2 в разработке, даты нет','tt3647998'],
+['wl','Мир Дикого Запада','Westworld',2016,'S4 · IMDb 8,4','ended','Завершен на S4','tt0475784'],
+['wl','В Филадельфии всегда солнечно',"It's Always Sunny in Philadelphia",2005,'S18 · IMDb 8,8','new','Вышел S18 в августе 2026','tt0472954'],
+['wl','Хранители','Watchmen',2019,'S1 · IMDb 8,2','ended','Мини-сериал','tt7049682'],
+['wl','Пингвин','The Penguin',2024,'S1 · IMDb 8,6','unk','S2 не заказан',''],
+['wl','Призраки дома на холме','The Haunting of Hill House',2018,'S1 · IMDb 8,5','ended','Завершен','tt6763664'],
+['wl','Луи','Louie',2010,'S5 · IMDb 8,5','ended','Завершен','tt1492966'],
+['wl','Тетрадь смерти','Death Note',2006,'S1 · IMDb 8,9','ended','Завершен','tt0877057'],
+['wl','Господин Шоу с Бобом и Дэвидом','Mr. Show with Bob and David',1995,'S4 · IMDb 8,4','ended','Завершен',''],
+['wl','Кэрри','Carrie',2026,'S1 · IMDb 7,9','ren','Продлен на S2, выход не раньше 2027',''],
+];
+
+/* ---------- состояние ---------- */
+let on=load('himym-on',EP.map(()=>true));
+let hist=load('himym-hist',[]);
+let norep=load('himym-norep',false),unseen=load('himym-unseen',false),favs=load('himym-favs',false);
+let st=load('himym-state',{watched:{},ratings:{},days:[],ach:{}});
+let ov=load('tv-marks',{});
+let tvr=load('tv-ratings',{});
+let cur=load('tv-tab','all');if(typeof cur!=='string')cur='all';
+let last=null;
+const saveSt=()=>save('himym-state',st);
+if(!load('himym-reset-2611',false)){st.watched={};st.days=[];hist=[];save('himym-hist',hist);saveSt();save('himym-reset-2611',true)}
+try{document.getElementById('tvcount').textContent=S.length+' сериалов · статусы и рейтинги IMDb'}catch(e){}
+const grp=x=>ov[x[2]]||x[0];
+window.__S=S;
+
+/* ---------- геймификация ---------- */
+const wc=()=>Object.keys(st.watched).length;
+const tvWatched=()=>S.filter(x=>grp(x)==='w').length;
+function streak(){
+  const set=new Set(st.days);let d=new Date(),n=0;
+  const key=x=>`${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`;
+  if(!set.has(key(d)))d.setDate(d.getDate()-1);
+  while(set.has(key(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+const LV=[[0,'Новичок'],[200,'Зритель'],[600,'Бинджер'],[1500,'Сериальный маньяк'],[3000,'Легенда']];
+const xp=()=>wc()*10+Object.keys(st.ratings).length*5+tvWatched()*30+Object.keys(tvr).length*5+Object.keys(st.ach).length*50;
+const sea=t=>t.slice(0,3);
+const A=[
+ ['pilot','С чего все началось','Выпал пилот',()=>hist.includes('S01E01')],
+ ['legend','Legendary','Выпала легендарная серия',()=>hist.some(t=>L[t])],
+ ['all9','Полный набор','Серии из всех 9 сезонов',()=>new Set(hist.map(sea)).size===9],
+ ['hat','Хет-трик','3 броска подряд из одного сезона',()=>hist.length>=3&&sea(hist[0])===sea(hist[1])&&sea(hist[1])===sea(hist[2])],
+ ['w10','Марафонец','Посмотрено 10 серий',()=>wc()>=10],
+ ['w104','Полпути','Посмотрено 104 серии',()=>wc()>=104],
+ ['w208','Legen… dary','Посмотрены все 208 серий',()=>wc()>=208],
+ ['finale','Конец истории','Посмотрен финал',()=>!!st.watched.S09E24],
+ ['s3','Привычка','3 дня подряд',()=>streak()>=3],
+ ['s7','Неделя в баре','7 дней подряд',()=>streak()>=7],
+ ['critic','Критик','Оценено 10 серий',()=>Object.keys(st.ratings).length>=10],
+ ['tv10','Сериальщик','10 сериалов в «Посмотрел»',()=>tvWatched()>=10],
+];
+let tt;
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600)}
+function check(){
+  const got=[];
+  A.forEach(([id,n,,f])=>{if(!st.ach[id]&&f()){st.ach[id]=today();got.push(n)}});
+  if(got.length){saveSt();toast('Ачивка: '+got.join(', '))}
+}
+
+/* ---------- звезды ---------- */
+const stars=(v,key)=>Array.from({length:10},(_,i)=>`<button class="star${i<v?' on':''}" data-k="${key}" data-v="${i+1}" aria-label="Оценка ${i+1} из 10">★</button>`).join('');
+
+/* ---------- отрисовка рандома ---------- */
+function drawSeasons(){
+  $('seasons').innerHTML=EP.map((n,i)=>{const w=Array.from({length:n},(_,e)=>st.watched[tag(i+1,e+1)]).filter(Boolean).length;
+    return `<button class="chip" data-i="${i}" aria-pressed="${on[i]}">S${pad(i+1)}<small>${w}/${n} эп.</small><i class="pb" style="width:${w/n*100}%"></i></button>`}).join('');
+}
+function drawHist(){
+  $('hist').innerHTML=hist.slice(0,40).map(t=>`<li>${t}</li>`).join('');
+  $('empty').hidden=hist.length>0;$('clear').hidden=!hist.length;
+}
+function drawTop(){
+  const r=Object.entries(st.ratings).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,10);
+  $('top').innerHTML=r.map(([t,v])=>`<li><span>${t}${L[t]?` <span class="muted">${esc(L[t])}</span>`:''}</span><span class="sc">${v}</span></li>`).join('');
+  $('topempty').hidden=r.length>0;
+}
+function drawProfile(){
+  const x=xp();let i=LV.length-1;while(x<LV[i][0])i--;
+  const nx=LV[i+1];
+  $('lvl').textContent=LV[i][1];
+  $('xpbar').style.width=nx?((x-LV[i][0])/(nx[0]-LV[i][0])*100)+'%':'100%';
+  $('xpt').textContent=nx?`${x} XP · до уровня «${nx[1]}» ${nx[0]-x} XP`:`${x} XP · максимальный уровень`;
+  $('stW').textContent=wc();$('stStreak').textContent=streak();$('stRated').textContent=Object.keys(st.ratings).length;$('stTv').textContent=tvWatched();
+}
+function drawAch(){
+  $('ach').innerHTML=A.map(([id,n,d])=>`<li class="${st.ach[id]?'got':''}"><b>${esc(n)}</b><span>${esc(d)}</span></li>`).join('');
+  $('achc').textContent=`${Object.keys(st.ach).length}/${A.length}`;
+}
+function drawAfter(){
+  if(!last){$('after').hidden=true;return}
+  $('after').hidden=false;
+  const w=!!st.watched[last],v=st.ratings[last]||0;
+  $('seen').setAttribute('aria-pressed',w);$('seen').textContent=w?'Посмотрел ✓':'Посмотрел';
+  $('epstars').innerHTML=stars(v,'ep');
+  $('epval').innerHTML=v?`<b>${v}</b>/10`:'';
+}
+function drawAll(){drawSeasons();drawHist();drawTop();drawProfile();drawAch();drawAfter()}
+
+/* ---------- бросок ---------- */
+function pool(){
+  const p=[];EP.forEach((n,i)=>{if(on[i])for(let e=1;e<=n;e++)p.push([i+1,e])});
+  return p.filter(([s,e])=>(!unseen||!st.watched[tag(s,e)])&&(!favs||(st.ratings[tag(s,e)]||0)>=8));
+}
+function pick(){
+  let p=pool();
+  if(!p.length){$('lab').textContent=favs?'Нет серий с оценкой 8+ в выбранных сезонах. Оцените серии или выключите фильтр.':unseen?'Все серии выбранных сезонов просмотрены.':'Выберите хотя бы один сезон.';return null}
+  if(norep){
+    const seen=new Set(hist);const left=p.filter(([s,e])=>!seen.has(tag(s,e)));
+    if(!left.length){$('lab').textContent='Все серии из выбранных сезонов уже выпадали, круг начался заново.';hist=[];}
+    else p=left;
+  }
+  const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+  const ss=[...new Set(p.map(x=>x[0]))];
+  const s=ss[rnd(ss.length)];
+  const eps=p.filter(x=>x[0]===s);
+  return eps[rnd(eps.length)];
+}
+let busy=false;
+function roll(){
+  if(busy)return;const r=pick();if(!r)return;busy=true;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let k=0;const steps=reduce?0:14;
+  const d=$('dog');d.classList.remove('on','wow');$('stage').classList.remove('leg');
+  const tick=()=>{
+    if(k<steps){const s=1+Math.floor(Math.random()*9);$('s').textContent=pad(s);$('e').textContent=pad(1+Math.floor(Math.random()*EP[s-1]));k++;setTimeout(tick,40+k*6);return}
+    const [s,e]=r,t=tag(s,e);last=t;
+    $('s').textContent=pad(s);$('e').textContent=pad(e);
+    hist.unshift(t);save('himym-hist',hist);
+    const leg=L[t];
+    $('stage').classList.toggle('leg',!!leg);
+    $('livepill').textContent=leg?'Legendary':'Выпало';
+    $('stlabel').textContent=leg?'Легендарная серия':'Результат';
+    let txt=`Сезон ${s}, серия ${e}`+(leg?` · ${leg}`:'');
+    if(norep){const seen=new Set(hist);txt+=` · осталось ${pool().filter(([a,b])=>!seen.has(tag(a,b))).length}`}
+    $('lab').textContent=txt;
+    void d.offsetWidth;d.classList.add('on');if(leg)d.classList.add('wow');
+    busy=false;check();drawAll();
+  };
+  tick();
+}
+
+/* ---------- события рандома ---------- */
+$('go').addEventListener('click',roll);
+document.addEventListener('keydown',ev=>{if(ev.code==='Space'&&!$('v-roll').hidden&&!/INPUT|BUTTON|SELECT/.test(ev.target.tagName)){ev.preventDefault();roll()}});
+$('seasons').addEventListener('click',ev=>{const b=ev.target.closest('.chip');if(!b)return;const i=+b.dataset.i;on[i]=!on[i];save('himym-on',on);drawSeasons()});
+$('all').addEventListener('click',()=>{on=EP.map(()=>true);save('himym-on',on);drawSeasons()});
+[['norep',v=>norep=v,'himym-norep',norep],['unseen',v=>unseen=v,'himym-unseen',unseen],['favs',v=>favs=v,'himym-favs',favs]].forEach(([id,set,key,val])=>{
+  $(id).checked=val;$(id).addEventListener('change',ev=>{set(ev.target.checked);save(key,ev.target.checked)})});
+$('clear').addEventListener('click',()=>{hist=[];save('himym-hist',hist);drawHist()});
+$('copy').addEventListener('click',async()=>{const t=$('lab').textContent;if(!/^Сезон/.test(t))return;try{await navigator.clipboard.writeText(t.split(' · ').slice(0,2).join(' · '));$('copy').textContent='Скопировано'}catch(e){$('copy').textContent='Не вышло'}setTimeout(()=>$('copy').textContent='Скопировать',1500)});
+$('seen').addEventListener('click',()=>{
+  if(!last)return;
+  if(st.watched[last])delete st.watched[last];else{st.watched[last]=today();if(!st.days.includes(today()))st.days.push(today())}
+  saveSt();check();drawAll();
+});
+$('epstars').addEventListener('click',e=>{const b=e.target.closest('.star');if(!b||!last)return;const v=+b.dataset.v;
+  if(st.ratings[last]===v)delete st.ratings[last];else st.ratings[last]=v;saveSt();check();drawAll()});
+
+/* ---------- сериалы ---------- */
+const G=[['all','Все'],['new','Новые сезоны'],['wait','Продлены'],['w','Посмотрел'],['wl','Хочу посмотреть']];
+const inTab=(x,k)=>k==='all'||(k==='wait'?(x[5]==='ren'||x[5]==='date'):grp(x)===k);
+const CL={new:'b-new',ended:'b-ended',date:'b-date',ren:'b-ren',unk:'b-unk'};
+const link=(id,en,y)=>id?`https://www.imdb.com/title/${id}/`:`https://www.imdb.com/find/?q=${encodeURIComponent(en+' '+y)}&s=tt&ttype=tv`;
+const imdbOf=x=>{const m=/IMDb (\d+),(\d)/.exec(x[4]);return m?+(m[1]+'.'+m[2]):0};
+let openR=null,hot=null;
+const tabs=$('tabs'),list=$('shows');
+function draw(){
+  tabs.innerHTML=G.map(([k,n])=>`<button class="tab" role="tab" data-k="${k}" aria-selected="${k===cur}">${n}<small>${S.filter(x=>inTab(x,k)).length}</small></button>`).join('');
+  list.innerHTML=S.filter(x=>inTab(x,cur)).map(x=>{
+    const [,ru,en,y,note,stt,txt,id]=x,g=grp(x),onw=g==='w',r=tvr[en]||0;
+    return `<li class="show${hot===en?' hot':''}" id="tv-${en.replace(/\W/g,'')}"><button class="chk" data-en="${esc(en)}" aria-pressed="${onw}" aria-label="${onw?'Убрать из посмотренных':'Отметить как посмотренный'}: ${esc(ru)}"></button>
+    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${imdbOf(x)?`<span class="imdbr">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b></span>`:''}${note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim()?`<span class="note2">${esc(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</span>`:''}</div></div>
+    <div class="acts"><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button><a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a></div>
+    ${openR===en?`<div class="rrow"><span class="label">Моя оценка</span><div class="stars">${stars(r,'tv:'+esc(en))}</div><span class="rv num">${r?`<b>${r}</b>/10`:''}</span></div>`:''}</li>`}).join('');
+}
+list.addEventListener('click',e=>{
+  const c=e.target.closest('.chk');
+  if(c){const x=S.find(r=>r[2]===c.dataset.en);if(!x)return;
+    const next=grp(x)==='w'?(x[0]==='w'?'wl':x[0]):'w';
+    if(next===x[0])delete ov[x[2]];else ov[x[2]]=next;save('tv-marks',ov);check();draw();drawProfile();drawAch();return}
+  const m=e.target.closest('.myr');
+  if(m){openR=openR===m.dataset.en?null:m.dataset.en;draw();return}
+  const s=e.target.closest('.star');
+  if(s&&s.dataset.k.startsWith('tv:')){const en=s.dataset.k.slice(3),v=+s.dataset.v;
+    if(tvr[en]===v)delete tvr[en];else tvr[en]=v;save('tv-ratings',tvr);draw();drawProfile()}
+});
+tabs.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;cur=b.dataset.k;save('tv-tab',cur);draw()});
+$('nxgo').addEventListener('click',()=>{
+  const min=+$('nxmin').value;
+  const p=S.filter(x=>grp(x)==='wl'&&imdbOf(x)>=min);
+  if(!p.length){$('nxres').textContent='В списке «Хочу посмотреть» нет сериалов с таким рейтингом.';return}
+  const a=new Uint32Array(1);crypto.getRandomValues(a);const x=p[a[0]%p.length];
+  $('nxres').innerHTML=`${esc(x[1])} <span class="en">(${esc(x[2])}), ${x[3]} · IMDb ${imdbOf(x).toFixed(1).replace('.',',')}</span>`;
+  hot=x[2];cur='wl';save('tv-tab',cur);draw();
+  const el=document.getElementById('tv-'+x[2].replace(/\W/g,''));if(el)el.scrollIntoView({block:'center',behavior:'smooth'});
+});
+
+/* ---------- вкладки страницы ---------- */
+const show=()=>{const v=location.hash==='#series'?'series':location.hash==='#game'?'game':'roll';
+  $('v-roll').hidden=v!=='roll';$('v-series').hidden=v!=='series';$('v-game').hidden=v!=='game';
+  document.querySelectorAll('#nav a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(window.scrollY>60)window.scrollTo(0,0)};
+window.addEventListener('hashchange',show);
+
+check();drawAll();draw();show();
+}
+
+
+/* ---------- игра: угадай серию ---------- */
+{
+const D=[[1, 1, "Pilot", "Маршалл делает предложение Лили, и Тед решает найти любовь. На первом свидании с Робин он слишком рано говорит о чувствах."], [1, 2, "Purple Giraffe", "Тед зовет Робин на одну вечеринку за другой, Маршалл тонет в курсовой по праву, а Барни пытается выбраться из случайно начатых отношений."], [1, 3, "Sweet Taste of Liberty", "Спонтанная поездка Теда с Барни в аэропорт заканчивается в Филадельфии и проблемами с охраной. Лили ревнует к успехам Робин на свиданиях."], [1, 4, "Return of the Shirt", "Тед вспоминает бывшую, которую бросил в ее день рождения. Барни платит Робин за странные фразы в прямом эфире."], [1, 5, "Okay Awesome", "Робин зовет всех в ночной клуб, а Маршалл с Лили устраивают чинную вечеринку с вином и сыром и сбегают с нее."], [1, 6, "Slutty Pumpkin", "Хэллоуин: Тед снова ждет на крыше девушку в костюме тыквы, которую встретил годы назад, а Робин отказывается от парного костюма."], [1, 7, "Matchmaker", "Сервис знакомств не находит Теду ни одной пары, и он пробирается в его систему. Маршалл и Лили выгоняют из квартиры странного зверька."], [1, 8, "The Duel", "Лили переезжает к ребятам, и Барни уверяет Теда, что она его вытеснит. Все начинается с замены старой кофеварки."], [1, 9, "Belly Full of Turkey", "Маршалл везет Лили к своей семье в Миннесоту на День благодарения. Тед и Робин узнают, как Барни помогает в столовой для бедных."], [1, 10, "The Pineapple Incident", "После бурной ночи Тед просыпается с вывихнутой лодыжкой, девушкой в постели и ананасом. Друзья восстанавливают, что произошло."], [1, 11, "The Limo", "Тед арендует лимузин, чтобы объехать вечеринки в Новый год, но к полуночи все застревают в пробке."], [1, 12, "The Wedding", "Тед берет Робин на свадьбу друзей, где ссора пары срывает церемонию, а Робин в последний момент уходит на работу."], [1, 13, "Drumroll, Please", "Тед знакомится на свадьбе с загадочной девушкой, которая утром исчезает, и просит Барни ее найти. Робин видит их вместе."], [1, 14, "Zip, Zip, Zip", "Тед и Виктория хотят не спешить, но быстро проходят все этапы отношений. Робин идет с Барни на мужской вечер."], [1, 15, "Game Night", "Друзья рассказывают самые стыдные истории, чтобы выведать у Барни, что случилось с его первой девушкой."], [1, 16, "Cupcake", "Виктории предлагают кулинарную стажировку в Германии, Лили портит дорогое свадебное платье, Маршалл идет на собеседование в фирму Барни."], [1, 17, "Life Among the Gorillas", "Лили считает, что новая работа в фирме Барни портит Маршалла. Тед советуется с Робин насчет посылок для Виктории."], [1, 18, "Nothing Good Happens After 2 A.M.", "Расплывчатое сообщение от Виктории убеждает Теда, что его бросят. Ночью Робин зовет его к себе."], [1, 19, "Mary the Paralegal", "Робин получает награду за репортажи, а Барни убеждает Теда, что его спутница на банкете работает за деньги."], [1, 20, "Best Prom Ever", "Свадебная площадка освобождается раньше, и друзья пробираются на школьный выпускной послушать группу."], [1, 21, "Milk", "Сервис знакомств наконец находит Теду пару, но он сомневается из-за Робин. Лили тайно подает заявку на стипендию в Сан-Франциско."], [1, 22, "Come On", "Тед добивается Робин вплоть до танца дождя, а Маршалл узнает, что Лили приняла стипендию в Сан-Франциско."], [2, 1, "Where Were We?", "Друзья отвлекают Маршалла, чтобы он не бегал за Лили по городу: Барни ведет его в стрип-клуб, Тед на бейсбол."], [2, 2, "The Scorpion and the Toad", "Барни учит Маршалла знакомиться с девушками, но уводит их сам. Лили возвращается и ищет квартиру."], [2, 3, "Brunch", "На бранче с родителями Теда всплывает семейная тайна, которая переворачивает его мир."], [2, 4, "Ted Mosby, Architect", "Робин называет работу Теда скучной, и Барни доказывает обратное: фраза «я архитектор» работает на девушках."], [2, 5, "World's Greatest Couple", "Лили живет у Барни и отпугивает его девушек, притворяясь его женой."], [2, 6, "Aldrin Justice", "Барни пытается задобрить строгую преподавательницу Маршалла, а Лили устраивается в фирму Теда и учит его начальника манерам."], [2, 7, "Swarley", "В кофейне Барни называют «Сворли», и друзья весь день его так зовут. Маршалл встречается с девушкой со странным взглядом."], [2, 8, "Atlantic City", "Маршалл и Лили мирятся и решают тайно пожениться в Атлантик-Сити, остальные едут свидетелями."], [2, 9, "Slap Bet", "Барни раскапывает прошлое Робин и причину, почему она избегает торговых центров. Маршалл и Барни заключают пари на пощечину."], [2, 10, "Single Stamina", "К Барни приезжает брат Джеймс с новостью, которую Барни трудно принять."], [2, 11, "How Lily Stole Christmas", "Тед все еще злится на Лили за разрыв помолвки и чуть не портит всем Рождество одним грубым словом."], [2, 12, "First Time in New York", "Робин не может сказать Теду, что любит его, а приезд младшей сестры с парнем выбивает ее из колеи."], [2, 13, "Columns", "Теду нужно уволить бывшего начальника, который теперь работает на него. Барни заказывает у Лили свой портрет в обнаженном виде."], [2, 14, "Monday Night Football", "Друзья записывают Супербоул из-за похорон и весь день стараются не узнать счет."], [2, 15, "Lucky Penny", "Тед находит монетку на удачу, и за ней тянется цепочка неудач. Маршалл готовится к Нью-Йоркскому марафону."], [2, 16, "Stuff", "Робин упрекает Теда за подарки от бывших, а Барни хочет доказать Лили, что она похвалит любую его постановку."], [2, 17, "Arrivederci, Fiero", "Любимая машина Маршалла глохнет почти на отметке 200 000 миль, и друзья вспоминают поездки в ней."], [2, 18, "Moving Day", "Тед и Робин съезжаются, а Барни крадет грузовик со всеми вещами, чтобы этому помешать."], [2, 19, "Bachelor Party", "Тед готовит мальчишник для Маршалла, Барни все портит, и Маршалл задумывается, кого брать шафером."], [2, 20, "Showdown", "Барни попадает на шоу The Price Is Right и наконец встречает Боба Баркера, которого считает отцом."], [2, 21, "Something Borrowed", "День свадьбы Маршалла и Лили идет не по плану, и Барни спасает положение."], [2, 22, "Something Blue", "Барни подозревает, что у Теда и Робин есть общий секрет, и правда ошеломляет даже его."], [3, 1, "Wait for It", "Робин возвращается из отпуска с аргентинцем, и Барни уводит Теда развеяться."], [3, 2, "We're Not from Here", "Барни и Тед выдают себя за приезжих, чтобы знакомиться с девушками. Маршалл и Лили пишут письма на случай смерти."], [3, 3, "Third Wheel", "После вечеринки к Теду домой едут сразу две девушки, а друзья спорят, бывает ли невезение по три раза."], [3, 4, "Little Boys", "Робин встречается с отцом-одиночкой и привязывается к его сыну. Тед и Барни выясняют, кто лучше знакомится."], [3, 5, "How I Met Everyone Else", "Девушка Теда ревнует к тому, что история знакомства его друзей интереснее ее собственной."], [3, 6, "I'm Not That Guy", "Юридическая фирма переманивает Маршалла большими деньгами от мечты спасать природу. В порно находят тезку одного из друзей."], [3, 7, "Dowisetrepla", "Маршалл и Лили впопыхах покупают квартиру в районе с подозрительным названием и узнают секрет Лили о долгах."], [3, 8, "Spoiler Alert", "Раздражающая привычка девушки Теда заставляет друзей заметить свои. Маршалл забыл пароль от результатов экзамена."], [3, 9, "Slapsgiving", "Маршалл и Лили впервые устраивают День благодарения, а Барни мучается от обратного отсчета до пощечины."], [3, 10, "The Yips", "Барни встречает в спортзале женщину из своего прошлого и теряет уверенность, а вернуть ее пытается на вечеринке Victoria's Secret."], [3, 11, "The Platinum Rule", "Друзья отговаривают Теда от свидания с врачом, который сводит ему татуировку, вспоминая свои истории."], [3, 12, "No Tomorrow", "Тед живет по правилам Барни в День святого Патрика, а Робин и Маршалл не решаются сказать Лили о проблеме с квартирой."], [3, 13, "Ten Sessions", "Тед раз за разом зовет на свидание своего дерматолога Стеллу и получает отказ."], [3, 14, "The Bracket", "Загадочная женщина срывает Барни знакомства, и он составляет турнирную сетку из 64 девушек, у которых есть повод мстить."], [3, 15, "The Chain of Screaming", "Маршалл расплакался перед начальником, который на него наорал, и все советуют, как ответить."], [3, 16, "Sandcastles in the Sand", "Робин снова сходится с давним бывшим Саймоном, а друзья находят старый клип Робин Спарклз."], [3, 17, "The Goat", "Барни переспал с Робин и ищет лазейку в Кодексе братана, чтобы сохранить дружбу с Тедом. Лили спасает козу."], [3, 18, "Rebound Bro", "Тед и Барни поссорились, и Барни подыскивает себе нового лучшего друга, пока Стелла готова к близости с Тедом."], [3, 19, "Everything Must Go", "Лили продает картины, чтобы выровнять кривой пол в квартире. Барни выходит на ту, кто срывала его свидания."], [3, 20, "Miracles", "Тед попадает в аварию и пересматривает свою жизнь и отношения со Стеллой. Маршалл и Робин спорят о чудесах."], [4, 1, "Do I Know You?", "Стелла думает над предложением Теда, а Барни понимает, что влюблен в Робин."], [4, 2, "The Best Burger in New York", "Друзья вместе с Реджисом Филбином ищут место, где Маршалл съел свой первый бургер в городе."], [4, 3, "I Heart NJ", "Тед везет друзей к Стелле в Нью-Джерси, и выясняется, что после свадьбы она хочет жить там."], [4, 4, "Intervention", "Тед устраивает друзьям вмешательство в отместку за то, что они когда-то сбежали с его собственного."], [4, 5, "Shelter Island", "Тед и Стелла решают пожениться за три дня, но свадьбу портят их бывшие."], [4, 6, "Happily Ever After", "Тед сталкивается с человеком из прошлого, которого хотел бы избежать, и друзья примеряют такую встречу на себя."], [4, 7, "Not a Father's Day", "Маршалл и Лили спорят о ребенке, а Барни придумывает праздник для одиноких мужчин."], [4, 8, "Woooo!", "Подавленная Робин тусуется с шумной компанией девушек, которые все время кричат «уууу»."], [4, 9, "The Naked Man", "Тед находит ухажера Робин голым на своем диване и узнает о технике, которая меняет всю компанию."], [4, 10, "The Fight", "Тед и Барни затевают драку с парнями, занявшими их любимый столик в баре."], [4, 11, "Little Minnesota", "На Рождество к Теду приезжает младшая сестра, а Маршалл ведет Робин в бар в стиле Миннесоты."], [4, 12, "Benefits", "Тед и Робин договариваются о «дружбе с привилегиями», а Барни пытается им помешать."], [4, 13, "Three Days of Snow", "Лили застревает в метели по пути из Сиэтла, а Тед и Барни сами стоят за стойкой бара."], [4, 14, "The Possimpible", "У Робин неделя, чтобы найти работу, иначе ее вышлют в Канаду. Барни помогает с видеорезюме."], [4, 15, "The Stinsons", "Друзья подозревают, что у Барни девушка, а оказывается, у него «жена» и «сын»."], [4, 16, "Sorry, Bro", "В Нью-Йорк переезжает студенческая девушка Теда Карен, и друзья уговаривают его не выходить на связь."], [4, 17, "The Front Porch", "Выясняется, что Лили годами тайно разрушала отношения Теда, начиная с серьги в его постели."], [4, 18, "Old King Clancy", "Маршалл и Барни сочиняют сложную ложь, чтобы Тед не узнал о потере важного заказа."], [4, 19, "Murtaugh", "Барни находит список вещей, для которых Тед считает себя слишком старым, и выполняет его за сутки."], [4, 20, "Mosbius Designs", "Тед без работы открывает архитектурную фирму у себя дома и нанимает стажера, который слишком сближается с друзьями."], [4, 21, "The Three Days Rule", "Тед переписывается с новой знакомой, нарушая правило трех дней, а Барни и Маршалл пишут ему от ее имени."], [4, 22, "Right Place, Right Time", "Тед объясняет детям, как важно оказаться в нужном месте в нужное время. Барни празднует 200-ю победу."], [4, 23, "As Fast as She Can", "Жених Стеллы пытается загладить вину перед Тедом и находит ему работу. Барни хочет избежать штрафа за скорость."], [4, 24, "The Leap", "Тед всю ночь спасает свою фирму, пока Маршалл заманивает его на крышу на сюрприз ко дню рождения."], [5, 1, "Definitions", "Лили заставляет Барни и Робин признать, что они пара. Тед боится своей первой лекции."], [5, 2, "Double Date", "Тед понимает, что уже ходил на свидание с этой девушкой семь лет назад. В стрип-клубе находят двойника Лили."], [5, 3, "Robin 101", "Робин подозревает Барни в измене, а он просто учится у Теда встречаться с ней."], [5, 4, "The Sexless Innkeeper", "Маршалл и Лили так хотят двойного свидания с Барни и Робин, что перегибают палку. Тед получает обидное прозвище."], [5, 5, "Duel Citizenship", "Тед и Маршалл едут в Чикаго за любимой пиццей, но Лили увязывается с ними. Барни хочет сделать Робин американкой."], [5, 6, "Bagpipes", "Барни дает Маршаллу советы по отношениям, а соседи Теда и Робин слишком шумно выясняют отношения."], [5, 7, "The Rough Patch", "Друзья пытаются развести Барни и Робин, у которых все пошло наперекосяк, и зовут на помощь Алана Тика."], [5, 8, "The Playbook", "После разрыва с Робин Барни достает свою книгу уловок и возвращается к знакомствам."], [5, 9, "Slapsgiving 2: Revenge of the Slap", "День благодарения с отцом Лили, а право на очередную пощечину Барни достается Теду и Робин."], [5, 10, "The Window", "Соседка Мэгги, которую все давно ждут, на короткое время остается без парня, и мужчины выстраиваются в очередь."], [5, 11, "Last Cigarette Ever", "Маршалл снова закуривает, и вскоре за ним вся компания."], [5, 12, "Girls vs. Suits", "Тед знакомится с соседкой своей будущей жены, а Барни снимает костюм ради барменши, которая не любит мужчин в костюмах."], [5, 13, "Jenkins", "Лили не верит, что коллега Маршалла по фамилии Дженкинс поцеловала его."], [5, 14, "Perfect Week", "Барни идет к семи девушкам за семь дней без единого отказа, и вся компания за этим следит."], [5, 15, "Rabbit or Duck", "Лили и Маршалл устраивают Теду свидание на День святого Валентина, а у Барни «волшебный» телефон."], [5, 16, "Hooked", "Девушка держит Теда «на крючке» про запас, и друзья вспоминают, как это было с ними."], [5, 17, "Of Course", "Робин нанимает писательницу Аниту, которую играет Дженнифер Лопес, чтобы проучить Барни."], [5, 18, "Say Cheese", "На день рождения Лили Тед приводит очередную случайную девушку, а Робин охотится за неудачным фото Барни."], [5, 19, "Zoo or False", "Маршалла ограбили, и Лили решает, что им нужен пистолет."], [5, 20, "Home Wreckers", "После свадьбы мамы Тед импульсивно покупает полуразрушенный дом."], [5, 21, "Twin Beds", "Робин в новых отношениях, а к ней приходят Тед и Барни. Маршалл и Лили задумываются о раздельных кроватях."], [5, 22, "Robots vs. Wrestlers", "Тед попадает на снобскую вечеринку, а остальные идут на шоу роботов против рестлеров."], [5, 23, "The Wedding Bride", "Тед идет на хит-фильм, сюжет которого написан о нем и Стелле ее женихом."], [5, 24, "Doppelgangers", "Маршалл и Лили встречают двойника Барни и должны решиться на ребенка. Робин получает предложение работы мечты."], [6, 1, "Big Days", "Тед и Барни спорят из-за красивой девушки в баре, а Маршалл хочет детей и это давит на Лили."], [6, 2, "Cleaning House", "Помогая матери Барни с переездом, друзья узнают о нем неожиданное, а Робин перехваливает Теда перед свиданием вслепую."], [6, 3, "Unfinished", "Банк возобновляет проект штаб-квартиры, и Барни соблазняет Теда взяться за него. Робин звонит бывшему пьяной."], [6, 4, "Subway Wars", "Робин доказывает, что она настоящая ньюйоркчанка, и все наперегонки едут посмотреть на Вуди Аллена."], [6, 5, "Architect of Destruction", "Зои набрасывается на Теда из-за здания, которое снесут ради его проекта."], [6, 6, "Baby Talk", "Маршалл и Лили разбираются, как зачать ребенка, а Робин злит ее соведущая."], [6, 7, "Canning Randy", "Зои подключает студентов Теда к спасению отеля, а Маршаллу приходится уволить своего помощника Рэнди."], [6, 8, "Natural History", "На вечере в музее естественной истории Тед знакомится с мужем Зои, Капитаном. Барни и Робин трогают экспонаты на спор."], [6, 9, "Glitter", "Барни находит запись канадского детского шоу, и все узнают о подруге Робин Спарклз по имени Джессика Глиттер."], [6, 10, "Blitzgiving", "Невезучий друг по колледжу приносит всем неудачи на День благодарения, а Тед проводит праздник с Зои."], [6, 11, "The Mermaid Theory", "Дружба Теда с Зои проверяет теорию о том, что одинокий мужчина не может дружить с замужней женщиной."], [6, 12, "False Positive", "Друзья думают, что Лили беременна, и пересматривают свои жизни, а Барни пытается проникнуться Рождеством."], [6, 13, "Bad News", "Маршалл и Лили идут к специалисту по зачатию. Неожиданный визит родителей Маршалла заканчивается тяжелой новостью."], [6, 14, "Last Words", "Друзья поддерживают Маршалла на похоронах отца в Миннесоте, и Барни решает найти своего отца."], [6, 15, "Oh Honey", "Барни раскрывается перед кузиной Зои, а Тед признается Зои в чувствах."], [6, 16, "Desperation Day", "Канун Дня святого Валентина: Лили одна без Маршалла, а Барни охотится на одиноких девушек."], [6, 17, "Garbage Island", "Маршалл одержим спасением природы, и возвращается Капитан."], [6, 18, "A Change of Heart", "Барни понимает, что его по-настоящему тянет к Норе, а Робин встречается с парнем, который ведет себя как собака."], [6, 19, "Legendaddy", "Барни впервые встречается со своим отцом."], [6, 20, "The Exploding Meatball Sub", "Маршалл уходит из банка в экологическую организацию, а проект штаб-квартиры ссорит Теда и Зои."], [6, 21, "Hopeless", "Чтобы впечатлить отца, Барни просит друзей приукрасить их биографии, а Робин встречает давнюю симпатию."], [6, 22, "The Perfect Cocktail", "Маршалл и Барни ссорятся из-за сноса отеля, и Робин с Лили мирят их коктейлями."], [6, 23, "Landmarks", "Друзья говорят Теду, что на самом деле думают о Зои, и он принимает важное решение."], [6, 24, "Challenge Accepted", "Тед готовится быть шафером на большой свадьбе, Барни снова видит Нору, а Лили узнает, что беременна."], [7, 1, "The Best Man", "Барни готовится к свадьбе, а Тед с Барни вспоминают, как пьяный Маршалл испортил свадьбу Панчи."], [7, 2, "The Naked Truth", "Маршалл боится, что его новая работа сорвется из-за старых видео, где он бегает голым."], [7, 3, "Ducky Tie", "Тед встречает Викторию и узнает, что она помолвлена. Барни проигрывает пари на галстук с утятами."], [7, 4, "The Stinson Missile Crisis", "Робин по решению суда ходит к психотерапевту Кевину и влюбляется в него."], [7, 5, "Field Trip", "Тед ведет студентов на экскурсию, а Маршалл сам берется за крупное дело, пока начальник осторожничает."], [7, 6, "Mystery vs. History", "Друзья гуглят девушку, с которой Тед хочет встречаться, а Маршалл и Лили решают не узнавать пол ребенка."], [7, 7, "Noretta", "Кевин замечает, что все друзья встречаются с копиями своих родителей. Романтический вечер Барни и Норы идет кувырком."], [7, 8, "The Slutty Pumpkin Returns", "Тед наконец встречает девушку в костюме тыквы и понимает, что им не о чем говорить."], [7, 9, "Disaster Averted", "Друзья вспоминают ураган Айрин, а Барни пытается откупиться от галстука с утятами."], [7, 10, "Tick, Tick, Tick", "Барни и Робин скрывают от своих партнеров одну тайну, пока остальные на концерте."], [7, 11, "The Rebound Girl", "Тед и Барни решают завести ребенка вдвоем, а Робин отговаривает Маршалла и Лили от переезда на Лонг-Айленд."], [7, 12, "Symphony of Illumination", "Робин получает тяжелую новость и скрывает ее, а Маршалл застрял на крыше и его шантажирует подросток."], [7, 13, "Tailgate", "Маршалл продолжает семейную традицию у могилы отца, а Барни и Тед открывают свой бар."], [7, 14, "46 Minutes", "Маршалл и Лили переезжают на Лонг-Айленд, а Барни объявляет себя новым лидером компании."], [7, 15, "The Burning Beekeeper", "Новоселье Маршалла и Лили идет наперекосяк сразу во всех комнатах."], [7, 16, "The Drunk Train", "На выходных в Вермонте Кевин делает Робин предложение, а Барни находит достойную соперницу."], [7, 17, "No Pressure", "После разрыва Робин с Кевином Тед признается ей в чувствах."], [7, 18, "Karma", "Барни добивается стриптизерши по имени Карма, а Тед решает, что делать с освободившейся комнатой."], [7, 19, "The Broath", "Барни и Куинн хотят съехаться, но друзья ей не доверяют."], [7, 20, "Trilogy Time", "Пересматривая «Звездные войны», друзья представляют, какой будет их жизнь через три года."], [7, 21, "Now We're Even", "Тед наслаждается жизнью в одиночестве, а Робин выходит в эфир как ведущая World Wide News."], [7, 22, "Good Crazy", "Маршалл паникует из-за скорых родов, и Барни везет его в Атлантик-Сити. У Лили начинаются схватки."], [7, 23, "The Magician's Code, часть 1", "У Лили начинаются роды, а Маршалл с Барни застряли в Атлантик-Сити."], [7, 24, "The Magician's Code, часть 2", "Тед получает неожиданный звонок от Виктории в день ее свадьбы, а зрители узнают, кто станет невестой Барни."], [8, 1, "Farhampton", "Чтобы успокоить Робин перед свадьбой, Тед рассказывает, как Виктория писала записку своему бывшему жениху."], [8, 2, "The Pre-Nup", "Барни составляет огромный брачный договор, и остальные придумывают пункты для своих отношений."], [8, 3, "Nannies", "Маршалл и Лили ищут няню для сына, а Барни пользуется этим, чтобы знакомиться."], [8, 4, "Who Wants to Be a Godparent?", "Маршалл и Лили устраивают друзьям проверку, чтобы выбрать крестных для Марвина."], [8, 5, "The Autumn of Break-Ups", "Тед и Виктория расстаются, а Барни берет собаку себе в помощники для знакомств."], [8, 6, "Splitsville", "Робин никак не может бросить Ника, и Барни помогает ей с расставанием."], [8, 7, "The Stamp Tramp", "Маршалл устраивает однокурсника на собеседование, и все идет плохо. Робин помогает Барни вернуться в стрип-клубы."], [8, 8, "Twelve Horny Women", "Маршалл ведет самое важное дело карьеры, а друзья выясняют, кто из них был худшим хулиганом в юности."], [8, 9, "Lobster Crawl", "Робин пытается вернуть Барни, а Тед подменяет няню Марвина."], [8, 10, "The Over-Correction", "Робин подозревает Барни в странных мотивах, а мама Маршалла начинает встречаться с отцом Лили."], [8, 11, "The Final Page, часть 1", "Перед открытием своего здания Тед выясняет отношения со своим профессором из колледжа."], [8, 12, "The Final Page, часть 2", "Барни говорит Теду, что собирается сделать предложение, а у Маршалла и Лили первая ночь без сына."], [8, 13, "Band or DJ?", "Барни просит у отца Робин ее руки, а Лили и Тед спорят о подготовке к свадьбе."], [8, 14, "Ring Up!", "Тед встречается с девушкой без общих интересов, а она оказывается сводной сестрой Барни."], [8, 15, "P.S. I Love You", "Барни выясняет, кем Робин когда-то была одержима, а друзья подозревают, что девушка Теда его преследует."], [8, 16, "Bad Crazy", "Тед не может расстаться с неуравновешенной Жанетт, а Робин учится держать на руках Марвина."], [8, 17, "The Ashtray", "Капитан неожиданно звонит Теду, и друзья вспоминают последнюю встречу с ним."], [8, 18, "Weekend at Barney's", "Барни становится свахой для Теда по своей книге уловок, а Маршалл позорится на выставке Лили."], [8, 19, "The Fortress", "Барни нехотя продает свою квартиру, а Теда и Маршалла принимают за пару."], [8, 20, "The Time Travelers", "Тед и Барни из будущего уговаривают Теда пойти на шоу роботов против рестлеров."], [8, 21, "Romeward Bound", "Капитан зовет Лили на год в Рим, а Тед и Барни гадают, что скрывает девушка в пуховике."], [8, 22, "The Bro Mitzvah", "Друзья придумывают Барни идеальный мальчишник."], [8, 23, "Something Old", "Робин ищет медальон, который в юности закопала в Центральном парке, а Барни зовет ее отца поиграть в лазертаг."], [8, 24, "Something New", "Все едут на свадьбу Барни и Робин, а в кадре впервые появляется Мать."], [9, 1, "The Locket", "Барни и Робин боятся, что они родственники, а Маршалл переживает из-за поста мамы о его назначении судьей."], [9, 2, "Coming Back", "Брат Барни признается в разводе, а Тед один в романтическом отеле."], [9, 3, "Last Time in New York", "Лили помогает Теду пройти список дел в Нью-Йорке перед переездом в Чикаго."], [9, 4, "The Broken Code", "Барни злится, что у Теда все еще есть чувства к Робин, и Маршалл судит их по видеосвязи."], [9, 5, "The Poker Game", "Барни оказывается между Робин и своей матерью, а Тед и Маршалл спорят о свадебных подарках."], [9, 6, "Knight Vision", "Тед неудачно выбирает себе пару на выходные из трех девушек, а Маршалл лучше узнает попутчицу Дафну."], [9, 7, "No Questions Asked", "Дафна отправляет Лили тревожное сообщение, и Маршалл просит друзей удалить его без лишних вопросов."], [9, 8, "The Lighthouse", "Тед везет девушку на маяк, а у Робин конфликт с матерью Барни."], [9, 9, "Platonish", "Друзья вспоминают осень 2012 года и события, которые привели их туда, где они сейчас."], [9, 10, "Mom and Dad", "Барни хочет снова свести своих родителей, а Теда обвиняют в провале важного свадебного поручения."], [9, 11, "Bedtime Stories", "Маршалл укладывает сына спать, рассказывая три истории о друзьях в стихах."], [9, 12, "The Rehearsal Dinner", "Барни хочет провести репетицию свадебного ужина на арене лазертага."], [9, 13, "Bass Player Wanted", "На свадебных выходных друзья встречают человека, который нарочно сеет между ними раздор."], [9, 14, "Slapsgiving 3: Slappointment in Slapmarra", "Маршалл рассказывает, как долго готовился к следующей пощечине Барни."], [9, 15, "Unpause", "Тед и Робин выведывают у пьяного Барни секреты, а Маршалл старается не ссориться с Лили."], [9, 16, "How Your Mother Met Me", "200-я серия: восемь лет жизни Матери до встречи с Тедом и как ее путь пересекался с друзьями."], [9, 17, "Sunrise", "Утро свадьбы: Робин и Тед ищут пьяного Барни и вспоминают прошлые отношения."], [9, 18, "Rally", "Барни просыпается с жутким похмельем в день свадьбы, и друзья собирают ингредиенты для лекарства."], [9, 19, "Vesuvius", "Лили злится, что Робин слишком спокойна перед свадьбой, а Барни не может выбрать костюм."], [9, 20, "Daisy", "Лили уходит посреди ссоры, Маршалл с друзьями ищет ее, и выясняется, что она беременна."], [9, 21, "Gary Blauman", "За несколько часов до свадьбы на церемонию приезжает Гэри Блауман, и друзья вспоминают встречи с ним."], [9, 22, "The End of the Aisle", "Меньше часа до свадьбы: у Барни и Робин паника, а пари на пощечины наконец заканчивается."], [9, 23, "Last Forever, часть 1", "После свадьбы история перескакивает на годы вперед: как меняется жизнь друзей и их компания."], [9, 24, "Last Forever, часть 2", "Барни и Робин разводятся, у Барни рождается дочь, а Тед заканчивает рассказ детям."]];
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const DB=[[1, 1, "Uno", "Джин работает в «Синнабоне» в Омахе. В 2002 году Джимми пытается заполучить в клиенты Кеттлманов, а близнецы-скейтеры по ошибке приводят его в дом бабушки Туко."], [1, 2, "Mijo", "Туко вывозит Джимми и близнецов в пустыню. Джимми уговаривает его не убивать их, и Туко ломает каждому из близнецов по ноге. Начо предлагает Джимми долю за помощь в краже денег Кеттлманов."], [1, 3, "Nacho", "Джимми анонимно предупреждает Кеттлманов о планах Начо, но семья исчезает, а Начо попадает под арест. По совету Майка Джимми находит Кеттлманов в палатке в горах вместе с деньгами."], [1, 4, "Hero", "Джимми вешает билборд, копирующий стиль HHM, а потом разыгрывает спасение рабочего, который снимает рекламу. Сюжет попадает в новости, а Чак тайком читает газету соседа."], [1, 5, "Alpine Shepherd Boy", "Полиция бьет Чака электрошокером, когда он забирает газету соседа, и его везут в больницу. Джимми берет первых клиентов среди пожилых, Ким советует ему заняться наследственными делами."], [1, 6, "Five-O", "Детективы из Филадельфии приезжают к Майку. В прошлом раскрывается, как погиб сын Майка, честный полицейский, и что Майк сделал с напарниками, которые его убили."], [1, 7, "Bingo", "Джимми и Майк возвращают блокнот детектива. Джимми предлагает Ким стать партнерами, но она отказывается. Майк находит спрятанные деньги Кеттлманов, и Крейг соглашается на сделку со следствием."], [1, 8, "RICO", "В прошлом Джимми работает в почтовом отделе HHM и сдает экзамен на адвоката. В 2002 году он замечает, что дом престарелых «Сэндпайпер» обворовывает жильцов, и роется в мусорном контейнере в поисках документов."], [1, 9, "Pimento", "«Сэндпайпер» заваливает Джимми и Чака бумагами, и дело забирает HHM. Джимми узнает, что именно Чак не дает ему работать в фирме. Майк охраняет фармацевта Дэниела на сделке с Начо."], [1, 10, "Marco", "Джимми срывается во время игры в бинго в доме престарелых и уезжает в Цицерон, где неделю мошенничает со старым другом Марко. Позже он отказывается от работы в Davis & Main и уезжает."], [2, 1, "Switch", "Джин заперт в подсобке торгового центра и не может открыть аварийный выход. Джимми вместе с Ким разводит биржевого брокера в баре, а затем все же принимает предложение Davis & Main."], [2, 2, "Cobbler", "Майк заставляет Начо вернуть украденные бейсбольные карточки. Чтобы отвести полицию, Джимми выдумывает, что в тайнике хранились странные домашние видео."], [2, 3, "Amarillo", "Джимми подкупает водителя автобуса, чтобы набрать клиентов для коллективного иска, и без согласования запускает рекламу по телевизору. Начо предлагает Майку новую работу."], [2, 4, "Gloves Off", "Начо просит Майка убить Туко. Вместо этого Майк провоцирует Туко на драку прямо перед вызванной полицией, и того арестовывают."], [2, 5, "Rebecca", "В прошлом Джимми знакомится с женой Чака Ребеккой. Ким приводит в HHM банк «Меса Верде», но Хауэрд не возвращает ее из подвала. Гектор предлагает Майку деньги за ложные показания."], [2, 6, "Bali Ha'i", "Джимми не может заснуть в корпоративной квартире. Ким с Джимми разводят очередного богача в баре, а Майк соглашается взять на себя пистолет Туко за 50 тысяч после угрозы внучке."], [2, 7, "Inflatable", "В детстве Джимми видит, как мошенник обманывает его отца в магазине. В 2002 году он намеренно раздражает коллег, и Клифф его увольняет. Ким предлагает открыть отдельные практики в общем офисе."], [2, 8, "Fifi", "Ким уходит из HHM вместе с «Меса Верде», но Чак возвращает клиента. Ночью Джимми подделывает документы банка в копировальном центре, а Майк мастерит шипы для дороги из садового шланга."], [2, 9, "Nailed", "Майк грабит грузовик Гектора и забирает деньги, спрятанные в шинах. Чак подозревает Джимми в подлоге документов и теряет сознание в копировальном центре, пока Джимми наблюдает со стороны."], [2, 10, "Klick", "В прошлом Чак и Джимми сидят у постели умирающей матери. Майк готовится застрелить Гектора, но находит записку на лобовом стекле. Джимми признается Чаку в подлоге, а Чак тайно записывает признание."], [3, 1, "Mabel", "Джин теряет сознание после поимки воришки. Чак объясняет, зачем ему запись признания, а Эрнесто случайно ее слышит. Майк находит трекер в крышке бензобака."], [3, 2, "Witness", "Майк следит за курьером до «Лос Поллос Херманос». Джимми вламывается к Чаку и уничтожает кассету, а Хауэрд и частный детектив все это видят."], [3, 3, "Sunk Costs", "Майк подвешивает над дорогой кроссовки с кокаином, чтобы подставить водителей Гектора на границе. Джимми арестовывают за проникновение в дом Чака, и Ким берется его защищать."], [3, 4, "Sabrosito", "В прошлом Гас унижает Гектора перед доном Эладио. Майк под видом мастера фотографирует дом Чака изнутри, а Гас предлагает Майку работать на него."], [3, 5, "Chicanery", "На слушании в коллегии адвокатов Джимми доказывает, что «аллергия» Чака на электричество выдумана: в кармане брата весь день лежала батарейка. Чак срывается при всех."], [3, 6, "Off Brand", "Джимми отстранен на год и запускает рекламу под новым именем, чтобы не потерять оплаченное эфирное время. Начо крадет у Гектора нитроглицерин, а Гас осматривает прачечную вместе с Лидией."], [3, 7, "Expenses", "Джимми выполняет общественные работы и пытается перепродать рекламное время. Начо ищет таблетки-двойники для лекарства Гектора, Майк знакомится с Анитой из группы поддержки."], [3, 8, "Slip", "Джимми и Марко в прошлом достают коллекцию монет. Чак с помощью врача борется со своими симптомами, Джимми разыгрывает падение в магазине, а Начо подменяет капсулы Гектора."], [3, 9, "Fall", "Чак подает на HHM в суд после угрозы Хауэрда выдавить его из фирмы. Джимми настраивает жильцов «Сэндпайпера» против Ирен, чтобы ускорить выплату. Ким засыпает за рулем и попадает в аварию."], [3, 10, "Lantern", "Джимми признается жильцам, что подстроил травлю Ирен. Гектор падает с инсультом. Чака выводят из HHM, его симптомы возвращаются, и он поджигает свой дом."], [4, 1, "Smoke", "Джин снова теряет сознание в «Синнабоне» и опасается таксиста. Джимми узнает о гибели Чака, Хауэрд винит себя. Майк проверяет безопасность «Мадригала» по-настоящему."], [4, 2, "Breathe", "Джимми проходит собеседование в фирме копиров и планирует кражу дорогой фарфоровой статуэтки. Гас убивает Артуро и дает понять Начо, что знает о покушении на Гектора."], [4, 3, "Something Beautiful", "Джимми нанимает Айру для кражи статуэтки. Виктор и Тайрус инсценируют нападение на Начо, раненого Начо спасает доктор Кальдера. Ким читает Джимми письмо от Чака."], [4, 4, "Talk", "Джимми скучает в салоне сотовой связи. Ким берется за бесплатные дела в суде. Братья Саламанка убивают людей, на которых Начо свалил нападение."], [4, 5, "Quite a Ride", "Сол уничтожает улики и готовится к исчезновению. В 2003 году Джимми избивают после продажи телефонов, Ким обрабатывает раны. Гас нанимает немецкого инженера Вернера."], [4, 6, "Piñata", "Ким переходит в Schweikart & Cokely, и мечта о совместной фирме с Джимми рушится. Джимми устраивает показательную расправу над своими грабителями. Гас рассказывает Гектору историю о носухе."], [4, 7, "Something Stupid", "Время идет, Джимми и Ким отдаляются друг от друга. Бизнес на телефонах растет. Хьюэлла арестовывают после удара полицейского, и Джимми просит Ким помочь."], [4, 8, "Coushatta", "Чтобы спасти Хьюэлла, Джимми устраивает кампанию с письмами от «прихожан» из родного города Хьюэлла. Вернер в пьяном виде слишком много рассказывает о стройке в стриптиз-клубе."], [4, 9, "Wiedersehen", "Джимми и Ким подменяют чертежи отделения «Меса Верде» в Лаббоке. Джимми отказывают в восстановлении лицензии. Вернер сбегает со стройки к жене."], [4, 10, "Winner", "Ким помогает Джимми изобразить скорбь по Чаку, и лицензию возвращают. Джимми объявляет, что будет работать под другим именем. Майк по приказу Гаса убивает Вернера."], [5, 1, "Magic Man", "Таксист Джефф узнает Джина. Джимми официально работает под новым именем и раздает визитки со скидкой. Ким пытается без Джимми спасти клиента от плохой сделки."], [5, 2, "50% Off", "Наркоманы с дисконтными визитками адвоката устраивают серию преступлений. Начо по крышам добывает застрявший в трубе кокаин и завоевывает доверие Лало."], [5, 3, "The Guy for This", "Лало просит адвоката вытащить Доминго. Тот становится информатором DEA и сдает тайники Гаса. Ким пытается договориться с упрямым домовладельцем мистером Акером."], [5, 4, "Namaste", "Хауэрд предлагает Джимми работу в HHM, а Джимми разбивает его машину шарами для боулинга. Майка ранят в драке, и он приходит в себя в незнакомом месте."], [5, 5, "Dedicado a Max", "Майк приходит в себя в мексиканской деревне, где Гас строит больницу, и Гас просит его помочь против Саламанка. Джимми и Ким ищут компромат на Кевина из «Меса Верде»."], [5, 6, "Wexler v. Goodman", "Ким и Джимми устраивают переговоры с «Меса Верде» о доме Акера. Джимми цепляется к логотипу банка и неожиданно требует миллионы. В конце Ким предлагает пожениться."], [5, 7, "JMM", "Джимми и Ким расписываются в загсе. Лало просит адвоката добиться залога. Хауэрд забирает назад предложение о работе."], [5, 8, "Bagman", "Джимми едет в пустыню за 7 миллионами залога для Лало. На него нападают, Майк спасает Джимми, и они вдвоем идут через пустыню."], [5, 9, "Bad Choice Road", "Ким замечает пулевое отверстие в кружке Джимми. Лало приходит к ним домой выяснять правду, а Майк целится в него из винтовки с крыши."], [5, 10, "Something Unforgivable", "Ким увольняется и обсуждает план против Хауэрда. Начо открывает ворота убийцам, присланным на гасиенду Лало, но Лало выживает."], [6, 1, "Wine and Roses", "Ким и Джимми начинают операцию против Хауэрда в гольф-клубе. Начо прячется в мотеле, а Лало инсценирует собственную смерть."], [6, 2, "Carrot and Stick", "Начо понимает, что его подставили, и сбегает от стрелков. Ким угрожает Кеттлманам налоговой, чтобы те не мешали плану против Хауэрда."], [6, 3, "Rock and Hard Place", "Начо соглашается на условия Гаса, чтобы спасти отца, и в последний раз встречается с Гектором. Джимми и Ким дублируют ключ от машины Хауэрда."], [6, 4, "Hit and Run", "Джимми в гриме изображает Хауэрда с проституткой на глазах у Клиффа. Майк рассказывает Ким, что Лало жив. Джимми получает новый офис."], [6, 5, "Black and Blue", "Хауэрд понимает, кто стоит за слухами, и дерется с Джимми на боксерском ринге. Лало пробирается в дом вдовы Вернера в Германии."], [6, 6, "Axe and Grind", "Джимми и Ким получают у Кальдеры препарат для своего плана. У актера, играющего судью, сломана рука, и Ким срывается со встречи в Санта-Фе."], [6, 7, "Plan and Execution", "На встрече по делу «Сэндпайпера» Хауэрд срывается и рушит переговоры. Вечером он приходит к Джимми и Ким, а затем появляется Лало."], [6, 8, "Point and Shoot", "Лало отправляет Ким убить Гаса. Лало нападает на Гаса в прачечной, а Майк инсценирует самоубийство Хауэрда."], [6, 9, "Fun and Games", "Гас доказывает картелю свою непричастность. Отец Начо отказывается от предложения Майка. Ким оставляет лицензию и уходит от Джимми, а тот окончательно становится Солом."], [6, 10, "Nippy", "Джин втирается в доверие к матери Джеффа и с Джеффом и его другом грабит универмаг, отвлекая охранника."], [6, 11, "Breaking Bad", "В 2008 году Сол знакомится с Уолтером Уайтом. В Омахе Джин раскручивает схему с кражей личных данных у пьяных мужчин."], [6, 12, "Waterworks", "Ким живет во Флориде, говорит с Джином по телефону и признается вдове Хауэрда. Мать Джеффа узнает правду о Джине."], [6, 13, "Saul Gone", "Джина ловят, и он торгуется о сроке. На последнем заседании суда он говорит правду о себе и о Чаке."]];
+const G={himym:{D,EPN:[22,22,20,24,24,24,24,24,24],k:""},bcs:{D:DB,EPN:[10,10,10,10,10,13],k:"-bcs"}};
+let EPN,DD;
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+let best,played,ser=load("guess-ser","himym");if(!G[ser])ser="himym";
+function useSer(){EPN=G[ser].EPN;DD=G[ser].D;best=load('guess-best'+G[ser].k,0);played=load('guess-played'+G[ser].k,0);$('gser').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===ser)))}
+useSer();
+$('gser').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.k===ser)return;ser=b.dataset.k;save('guess-ser',ser);useSer();start()});
+let q=[],i=0,score=0,selS=0,selE=0,answered=false,log=[];
+const pts=n=>n+' '+(n%10===1&&n%100!==11?'очко':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'очка':'очков');
+function start(){
+  const idx=[...DD.keys()];for(let k=idx.length-1;k>0;k--){const j=rnd(k+1);[idx[k],idx[j]]=[idx[j],idx[k]]}
+  q=idx.slice(0,10).map(k=>DD[k]);i=0;score=0;log=[];show();
+}
+function show(){
+  answered=false;selS=0;selE=0;
+  const [s,e,t,d]=q[i];
+  $('gq').textContent=`Вопрос ${i+1} из 10`;$('gscore').textContent=pts(score);
+  $('gdesc').textContent=d;
+  $('gseas').innerHTML=EPN.map((n,k)=>`<button class="gb" data-s="${k+1}" aria-pressed="false">S${pad(k+1)}</button>`).join('');
+  $('geps').innerHTML='<span class="muted" style="font-size:14px">Сначала выберите сезон</span>';
+  $('gres').hidden=true;$('gok').hidden=false;$('gok').disabled=true;$('gnext').hidden=true;
+  drawSide();
+}
+function drawEps(){
+  $('geps').innerHTML=Array.from({length:EPN[selS-1]},(_,k)=>`<button class="gb" data-e="${k+1}" aria-pressed="${selE===k+1}">${k+1}</button>`).join('');
+}
+function drawSide(){
+  $('gbest').textContent=best;$('gplayed').textContent=played;
+  $('glog').innerHTML=log.length?log.map(([tag,p])=>`<li><span>${tag}</span><span>+${p}</span></li>`).join(''):'<li><span>Пока нет ответов</span></li>';
+}
+$('gseas').addEventListener('click',ev=>{const b=ev.target.closest('.gb');if(!b||answered)return;selS=+b.dataset.s;selE=0;
+  [...$('gseas').children].forEach(x=>x.setAttribute('aria-pressed',x===b));drawEps();$('gok').disabled=true});
+$('geps').addEventListener('click',ev=>{const b=ev.target.closest('.gb');if(!b||answered)return;selE=+b.dataset.e;
+  [...$('geps').children].forEach(x=>x.setAttribute('aria-pressed',x===b));$('gok').disabled=false});
+$('gok').addEventListener('click',()=>{
+  if(answered||!selS||!selE)return;answered=true;
+  const [s,e,t]=q[i];const p=selS===s?(selE===e?3:1):0;score+=p;
+  log.push([`S${pad(s)}E${pad(e)}`,p]);
+  [...$('gseas').children].forEach(x=>{x.disabled=true;const v=+x.dataset.s;if(v===s)x.classList.add('ok');else if(v===selS)x.classList.add('bad')});
+  if(selS===s)[...$('geps').children].forEach(x=>{x.disabled=true;const v=+x.dataset.e;if(v===e)x.classList.add('ok');else if(v===selE)x.classList.add('bad')});
+  else [...$('geps').children].forEach(x=>x.disabled=true);
+  const msg=p===3?'В точку!':p===1?'Сезон верный.':'Мимо.';
+  $('gres').innerHTML=`<span class="pts">+${p}</span>${msg} Это <b>S${pad(s)}E${pad(e)}</b> · ${t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}`;
+  $('gres').hidden=false;$('gok').hidden=true;
+  $('gnext').hidden=false;$('gnext').textContent=i<9?'Дальше':'Новый раунд';
+  $('gscore').textContent=pts(score);
+  if(i===9){played++;save('guess-played'+G[ser].k,played);if(score>best){best=score;save('guess-best'+G[ser].k,best);$('gres').innerHTML+=`<br>Раунд окончен: ${pts(score)}. Новый рекорд!`}else $('gres').innerHTML+=`<br>Раунд окончен: ${pts(score)} из 30.`}
+  drawSide();
+});
+$('gnext').addEventListener('click',()=>{if(i<9){i++;show()}else start()});
+start();
+}
+
+/* ---------- турнир сериалов ---------- */
+{
+const $=id=>document.getElementById(id);
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+const S=window.__S;const by=en=>S.find(x=>x[2]===en);
+const imdb=x=>{const m=/IMDb (\d+),(\d)/.exec(x[4]);return m?m[1]+','+m[2]:''};
+let st=load('cup-state',null),hist=load('cup-hist',[]),only=load('cup-only',false),size=load('cup-size',16);
+if(st&&!st.champ&&size&&st.total>size-1)st=null;
+$('conly').checked=only;
+function pool(){const ov=load('tv-marks',{});return S.filter(x=>!only||(ov[x[2]]||x[0])==='w').map(x=>x[2])}
+function shuffle(a){for(let k=a.length-1;k>0;k--){const j=rnd(k+1);[a[k],a[j]]=[a[j],a[k]]}return a}
+function newCup(){let p=shuffle(pool());if(size&&p.length>size)p=p.slice(0,size);st={round:p,next:[],i:0,out:[],undo:[],total:p.length-1,done:0};save('cup-state',st);draw()}
+function roundName(n){return n<=2?'Финал':n<=4?'Полуфинал':n<=8?'Четвертьфинал':n<=16?'1/8 финала':n<=32?'1/16 финала':'Первый раунд'}
+function advance(){
+  // byes
+  while(st.round.length-st.i===1){st.next.push(st.round[st.i]);st.i++}
+  if(st.i>=st.round.length){
+    if(st.next.length===1){finish();return}
+    st.round=st.next;st.next=[];st.i=0;
+    if(st.round.length%2===1){/* лишний проходит дальше */}
+    advance();
+  }
+}
+function finish(){
+  const w=st.next[0];const final=st.out.slice(-1)[0];const semis=st.out.slice(-3,-1);
+  hist.unshift({w,d:new Date().toISOString().slice(0,10)});hist=hist.slice(0,10);save('cup-hist',hist);
+  st.champ={w,f:final,s:semis};save('cup-state',st);draw();
+}
+function card(en,side){const x=by(en);const r=imdb(x);
+  return `<button class="pick" data-en="${esc(en)}"><span class="pn">${esc(x[1])}</span><span class="pe">${esc(x[2])}, ${x[3]}</span><span class="pm">${r?`<span class="imdbr">IMDb <b>${r}</b></span>`:''}<span class="key">${side}</span></span></button>`}
+function draw(){
+  if(!st||!st.round||!st.round.length)return newCup();
+  if(st.champ){
+    $('cwin').hidden=false;$('cduel').hidden=true;
+    const c=st.champ,x=by(c.w);
+    $('cwin').innerHTML=`<span class="label">Твой сериал №1</span><div class="wt">${esc(x[1])}</div><p class="ws">${esc(x[2])}, ${x[3]}${imdb(x)?' · IMDb '+imdb(x):''}</p>
+      <div class="podium">${c.f?`<div><span class="label">Финалист</span><b>${esc(by(c.f)[1])}</b></div>`:''}${(c.s||[]).map(e=>`<div><span class="label">Полуфинал</span><b>${esc(by(e)[1])}</b></div>`).join('')}</div>
+      <div class="btns" style="margin-top:0"><button class="btn" id="cagain">Сыграть снова</button><button class="btn ghost" id="cback">Отменить последний выбор</button></div>`;
+    $('cagain').onclick=newCup;$('cback').onclick=()=>$('cundo').click();
+    $('duel').innerHTML='';$('cround').textContent='Турнир окончен';$('cmatch').textContent=`${st.total} матчей`;$('cprog').style.width='100%';
+  } else {
+    $('cwin').hidden=true;$('cduel').hidden=false;
+    const a=st.round[st.i],b=st.round[st.i+1];
+    $('duel').innerHTML=card(a,'←')+'<span class="vs">VS</span>'+card(b,'→');
+    $('cround').textContent=roundName(st.round.length);
+    $('cmatch').textContent=`Матч ${st.done+1} из ${st.total}`;
+    $('cprog').style.width=(st.done/st.total*100)+'%';
+  }
+  $('cundo').disabled=!st.undo.length;
+  $('chist').innerHTML=hist.length?hist.map(h=>`<li><span>${esc((by(h.w)||[,h.w])[1])}</span><span>${h.d.slice(8,10)}.${h.d.slice(5,7)}.${h.d.slice(0,4)}</span></li>`).join(''):'<li><span>Пока нет</span></li>';
+}
+function pick(en){
+  if(!st||st.champ)return;
+  const a=st.round[st.i],b=st.round[st.i+1];if(en!==a&&en!==b)return;
+  st.undo.push(JSON.stringify({round:st.round,next:st.next,i:st.i,out:st.out,done:st.done}));st.undo=st.undo.slice(-20);
+  st.next.push(en);st.out.push(en===a?b:a);st.i+=2;st.done++;
+  advance();save('cup-state',st);draw();
+}
+$('duel').addEventListener('click',e=>{const b=e.target.closest('.pick');if(b)pick(b.dataset.en)});
+document.addEventListener('keydown',e=>{if($('g-cup').hidden||$('v-game').hidden||st.champ)return;
+  if(e.key==='ArrowLeft')pick(st.round[st.i]);if(e.key==='ArrowRight')pick(st.round[st.i+1])});
+$('cundo').addEventListener('click',()=>{if(!st.undo.length)return;if(st.champ){hist.shift();save('cup-hist',hist)}const u=JSON.parse(st.undo.pop());Object.assign(st,u);delete st.champ;save('cup-state',st);draw()});
+$('creset').addEventListener('click',newCup);
+const szb=()=>$('csize').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.n===size)));szb();
+$('csize').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;save('cup-size',size);szb();newCup()});
+$('conly').addEventListener('change',e=>{only=e.target.checked;save('cup-only',only);newCup()});
+$('gtabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;const g=b.dataset.g;
+  [...$('gtabs').children].forEach(x=>x.setAttribute('aria-selected',x===b));$('g-guess').hidden=g!=='guess';$('g-cup').hidden=g!=='cup';save('game-tab',g)});
+{const g=load('game-tab','guess');if(g==='cup')$('gtabs').children[1].click()}
+draw();
+}
+</script>
+</body>
+</html>

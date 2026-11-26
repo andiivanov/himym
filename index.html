@@ -223,7 +223,7 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 .stk img:hover{transform:translateY(-4px)}
 .stk .c1{border-radius:6px}
 .foot{border-top:1px solid var(--line);padding:20px 0 28px;font-size:12px;color:var(--fg-3)}
-.foot p{margin:0 0 6px}
+.foot p{margin:0 0 6px}.xfer{margin-top:10px!important}.xbox{display:block;width:100%;min-height:90px;margin:8px 0;padding:10px;font:12px var(--mono);background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px}.xbox[hidden],#xact[hidden]{display:none}
 @media(max-width:900px){.side{grid-template-columns:1fr}}
 @media(max-width:600px){.mark{font-size:11px;letter-spacing:.1em;white-space:nowrap}.top .wrap{gap:10px}.nav a{padding:8px 9px;font-size:13px}.badge{white-space:normal}.show{grid-template-columns:44px minmax(0,1fr);padding:12px 12px}.imdb{grid-column:2;justify-self:start}.legend{padding:12px}.pad{padding:18px}.cats .stk{grid-template-columns:repeat(2,minmax(0,1fr));padding:16px}.stk img:last-child{grid-column:1/-1;max-width:70%;margin:0 auto}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -376,6 +376,9 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 </main>
 <footer class="foot"><div class="wrap">
   <p>Статусы сезонов актуальны на 26 ноября 2026 года.</p>
+  <p class="xfer"><button class="linkbtn" id="xout">Скопировать прогресс</button> · <button class="linkbtn" id="xin">Вставить прогресс</button></p>
+  <textarea id="xbox" class="xbox" hidden spellcheck="false"></textarea>
+  <p id="xact" hidden><button class="btn" id="xapply">Загрузить</button></p>
 </div></footer>
 <div class="toast" id="toast" role="status"></div>
 <script>
@@ -811,6 +814,14 @@ $('gtabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)r
 {const g=load('game-tab','guess');if(g==='cup')$('gtabs').children[1].click()}
 draw();
 }
+</script>
+<script>
+{const K=k=>/^(himym-|tv-|guess-|cup-|game-)/.test(k);const $=i=>document.getElementById(i);
+$('xout').onclick=()=>{const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(K(k))o[k]=localStorage.getItem(k)}}catch(e){}
+const s=btoa(unescape(encodeURIComponent(JSON.stringify(o))));$('xbox').hidden=false;$('xact').hidden=true;$('xbox').value=s;$('xbox').select();
+try{navigator.clipboard.writeText(s).then(()=>{$('toast').textContent='Прогресс скопирован';$('toast').classList.add('on');setTimeout(()=>$('toast').classList.remove('on'),2200)})}catch(e){}};
+$('xin').onclick=()=>{$('xbox').hidden=false;$('xact').hidden=false;$('xbox').value='';$('xbox').placeholder='Вставь сюда скопированный код';$('xbox').focus()};
+$('xapply').onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($('xbox').value.trim()))));let n=0;for(const k in o)if(K(k)){localStorage.setItem(k,o[k]);n++}if(n)location.reload()}catch(e){$('xbox').value='Код не подошел, скопируй его заново'}};}
 </script>
 </body>
 </html>

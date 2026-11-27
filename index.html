@@ -682,7 +682,7 @@ function draw(){
   list.innerHTML=S.filter(x=>inTab(x,cur)).map(x=>{
     const [,ru,en,y,note,stt,txt,id]=x,g=grp(x),onw=g==='w',r=tvr[en]||0;
     return `<li class="show${hot===en?' hot':''}" id="tv-${en.replace(/\W/g,'')}"><button class="chk" data-en="${esc(en)}" aria-pressed="${onw}" aria-label="${onw?'Убрать из посмотренных':'Отметить как посмотренный'}: ${esc(ru)}"></button>
-    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim()?`<span class="note2">${esc(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</span>`:''}</div></div>
+    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${(r2=>r2&&!/^S\d+$/.test(r2)?`<span class="note2">${esc(r2)}</span>`:'')(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</div></div>
     <div class="acts"><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button>${imdbOf(x)?`<a class="imdb y" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b> ↗</a>`:`<a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a>`}</div>
     ${openR===en?`<div class="rrow"><span class="label">Моя оценка</span><div class="stars">${stars(r,'tv:'+esc(en))}</div><span class="rv num">${r?`<b>${r}</b>/10`:''}</span></div>`:''}</li>`}).join('');
 }

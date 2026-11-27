@@ -113,6 +113,8 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 .myr.has{color:var(--fg)}
 .myr.has::first-letter{color:#F5C518}
 .acts{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.wlb,.del{background:none;border:1px solid var(--line-2);border-radius:3px;min-height:36px;padding:0 10px;font:500 12px var(--mono);color:var(--fg-2);cursor:pointer;white-space:nowrap}.wlb:hover,.del:hover{border-color:var(--fg);color:var(--fg)}.wlb[aria-pressed=true]{color:var(--fg);border-color:var(--fg)}
+.addtv{display:flex;gap:8px;padding:14px 20px;border-bottom:1px solid var(--line)}.addtv input{flex:1;min-width:0;min-height:36px;padding:0 12px;border:1px solid var(--line-2);border-radius:3px;background:var(--raise);color:var(--fg);font:14px var(--sans)}.addtv input:focus{outline:none;border-color:var(--fg)}
 .rrow{grid-column:2/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:6px}
 .imdbr{display:inline-flex;align-items:center;gap:5px;font:500 12px var(--mono);padding:2px 7px;border-radius:3px;background:#F5C518;color:#121212;white-space:nowrap}
 .imdbr b{font-weight:600}
@@ -318,6 +320,7 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
       </div>
     </div>
     <div class="card" style="margin-top:16px">
+      <form class="addtv" id="addtv" autocomplete="off"><input id="addn" maxlength="60" placeholder="Нет нужного сериала? Впиши название" aria-label="Название сериала"><button class="btn ghost sm" type="submit">+ Добавить</button></form>
       <div class="legend">
         <span class="badge b-new">Новый сезон вышел</span>
         <span class="badge b-date">Есть дата</span>
@@ -521,7 +524,11 @@ let last=null;
 const saveSt=()=>save('himym-state',st);
 if(!load('himym-reset-2611',false)){st.watched={};st.days=[];hist=[];save('himym-hist',hist);saveSt();save('himym-reset-2611',true)}
 try{document.getElementById('tvcount').textContent=S.length+' сериалов · статусы и рейтинги IMDb'}catch(e){}
-const grp=x=>ov[x[2]]||x[0];
+const OWN={};S.forEach(x=>{OWN[x[2]]=x[0]==='new'?'w':x[0];x[0]='-'});window.__OWN=OWN;
+let cus=load('tv-custom',[]);if(!Array.isArray(cus))cus=[];
+const mkC=n=>['-',n,n,'','','cus','Добавлен вручную','',1];
+cus.forEach(n=>S.push(mkC(n)));
+const grp=x=>ov[x[2]]||'-';
 window.__S=S;
 
 /* ---------- геймификация ---------- */
@@ -672,8 +679,8 @@ $('epstars').addEventListener('click',e=>{const b=e.target.closest('.star');if(!
 
 /* ---------- сериалы ---------- */
 const G=[['all','Все'],['new','Новые сезоны'],['wait','Продлены'],['w','Посмотрел'],['wl','Хочу посмотреть']];
-const inTab=(x,k)=>k==='all'||(k==='wait'?(x[5]==='ren'||x[5]==='date'):grp(x)===k);
-const CL={new:'b-new',ended:'b-ended',date:'b-date',ren:'b-ren',unk:'b-unk'};
+const inTab=(x,k)=>k==='all'||(k==='wait'?(x[5]==='ren'||x[5]==='date'):k==='new'?x[5]==='new':grp(x)===k);
+const CL={new:'b-new',ended:'b-ended',date:'b-date',ren:'b-ren',unk:'b-unk',cus:'b-ended'};
 const GEN={'The Bear':'драмеди','MobLand':'криминал, драма','Lupin':'криминал, детектив','How I Met Your Mother':'ситком','The Sopranos':'криминал, драма','Better Call Saul':'криминал, драма','Dark':'фантастика, триллер','Community':'ситком','The Boys':'супергерои, экшен','Squid Game':'триллер, драма','Black Books':'ситком','Ozark':'криминал, триллер','Modern Family':'ситком','Parks and Recreation':'ситком','Arrested Development':'ситком','Severance':'фантастика, триллер','Pluribus':'фантастика, драма','Fallout':'фантастика, постапокалипсис','Landman':'драма','From':'хоррор, мистика','Black Mirror':'фантастика, антология','The Day of the Jackal':'шпионский триллер','The Studio':'комедия','The Last of Us':'постапокалипсис, драма','Your Friends & Neighbors':'драма, триллер','You':'триллер','True Detective':'детектив, криминал','House of Cards':'политическая драма','Twin Peaks':'мистика, детектив','House M.D.':'медицинская драма','Super Pumped: The Battle for Uber':'драма, биография','WeCrashed':'драма, биография','Halt and Catch Fire':'драма','Under the Dome':'фантастика, мистика','11.22.63':'фантастика, драма','Sherlock':'детектив','Patrick Melrose':'драма','Chernobyl':'историческая драма','Misfits':'фантастика, комедия','The Queen\'s Gambit':'драма','Fargo':'криминал, черная комедия','Fringe':'фантастика, детектив','Mr. Robot':'триллер, драма','Silicon Valley':'комедия','Shogun':'историческая драма','Two and a Half Men':'ситком','The Big Bang Theory':'ситком','Game of Thrones':'фэнтези, драма','Rick and Morty':'анимация, фантастика','Mad Men':'драма','Berserk':'аниме, фэнтези','Band of Brothers':'военная драма','Lie to Me':'детектив, драма','Hannibal':'триллер, хоррор','The Mentalist':'детектив','Knives Out':'детектив, комедия','The Gentlemen':'криминал, комедия','South Park':'анимация, комедия','The Vampire Diaries':'фэнтези, драма','Prison Break':'триллер, экшен','Lost':'мистика, драма','Friends':'ситком','Narcos':'криминал, биография','The Office':'ситком','Spartacus':'историческая драма, экшен','Peaky Blinders':'криминал, драма','The Originals':'фэнтези, драма','Mindhunter':'криминал, триллер','Ted Lasso':'комедия, спорт','Shrinking':'драмеди','Rooster':'комедия','Resident Alien':'фантастика, комедия','Taboo':'историческая драма, триллер','Westworld':'фантастика, вестерн','Watchmen':'супергерои, драма','The Penguin':'криминал, драма','The Haunting of Hill House':'хоррор, драма','Louie':'комедия','Death Note':'аниме, триллер','Mr. Show with Bob and David':'скетч-шоу','Carrie':'хоррор','House of the Dragon':'фэнтези, драма','A Knight of the Seven Kingdoms':'фэнтези','The Lord of the Rings: The Rings of Power':'фэнтези','Dexter':'криминал, триллер','Breaking Bad':'криминал, драма','The Wire':'криминал, драма','Succession':'драма','Boardwalk Empire':'криминал, историческая драма','The Americans':'шпионский триллер','Slow Horses':'шпионский триллер','The Night Of':'криминал, драма','Sons of Anarchy':'криминал, драма','Seinfeld':'ситком','Curb Your Enthusiasm':'комедия','Scrubs':'ситком','Brooklyn Nine-Nine':'ситком','Fleabag':'драмеди','Barry':'черная комедия, криминал','Stranger Things':'фантастика, хоррор','The Expanse':'космическая фантастика','Silo':'фантастика, драма','Andor':'фантастика, Star Wars','Arcane':'анимация, фэнтези','The Pitt':'медицинская драма','Adolescence':'драма, криминал','The White Lotus':'черная комедия, драма','Ripley':'криминал, триллер','Baby Reindeer':'драма, триллер',"It's Always Sunny in Philadelphia":'ситком'};
 const link=(id,en,y)=>id?`https://www.imdb.com/title/${id}/`:`https://www.imdb.com/find/?q=${encodeURIComponent(en+' '+y)}&s=tt&ttype=tv`;
 const imdbOf=x=>{const m=/IMDb (\d+),(\d)/.exec(x[4]);return m?+(m[1]+'.'+m[2]):0};
@@ -684,15 +691,18 @@ function draw(){
   list.innerHTML=S.filter(x=>inTab(x,cur)).map(x=>{
     const [,ru,en,y,note,stt,txt,id]=x,g=grp(x),onw=g==='w',r=tvr[en]||0;
     return `<li class="show${hot===en?' hot':''}" id="tv-${en.replace(/\W/g,'')}"><button class="chk" data-en="${esc(en)}" aria-pressed="${onw}" aria-label="${onw?'Убрать из посмотренных':'Отметить как посмотренный'}: ${esc(ru)}"></button>
-    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="gen">${esc(GEN[en]||'')}</div><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${(r2=>r2&&!/^S\d+$/.test(r2)?`<span class="note2">${esc(r2)}</span>`:'')(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</div></div>
-    <div class="acts"><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button>${imdbOf(x)?`<a class="imdb y" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b> ↗</a>`:`<a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a>`}</div>
+    <div><h3>${esc(ru)}${en!==ru?` <span class="en">(${esc(en)})${y?', '+y:''}</span>`:''}</h3><div class="gen">${esc(GEN[en]||'')}</div><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${(r2=>r2&&!/^S\d+$/.test(r2)?`<span class="note2">${esc(r2)}</span>`:'')(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</div></div>
+    <div class="acts">${x[8]?`<button class="del" data-en="${esc(en)}" aria-label="Удалить ${esc(ru)}">×</button>`:''}<button class="wlb" data-en="${esc(en)}" aria-pressed="${g==='wl'}">${g==='wl'?'✓ Хочу':'+ Хочу'}</button><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button>${imdbOf(x)?`<a class="imdb y" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b> ↗</a>`:`<a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a>`}</div>
     ${openR===en?`<div class="rrow"><span class="label">Моя оценка</span><div class="stars">${stars(r,'tv:'+esc(en))}</div><span class="rv num">${r?`<b>${r}</b>/10`:''}</span></div>`:''}</li>`}).join('');
 }
 list.addEventListener('click',e=>{
   const c=e.target.closest('.chk');
   if(c){const x=S.find(r=>r[2]===c.dataset.en);if(!x)return;
-    const next=grp(x)==='w'?(x[0]==='w'?'wl':x[0]):'w';
-    if(next===x[0])delete ov[x[2]];else ov[x[2]]=next;save('tv-marks',ov);check();draw();drawProfile();drawAch();return}
+    if(grp(x)==='w')delete ov[x[2]];else ov[x[2]]='w';save('tv-marks',ov);check();draw();drawProfile();drawAch();return}
+  const wb=e.target.closest('.wlb');
+  if(wb){const en=wb.dataset.en;if(ov[en]==='wl')delete ov[en];else ov[en]='wl';save('tv-marks',ov);check();draw();drawProfile();drawAch();return}
+  const dl=e.target.closest('.del');
+  if(dl){const en=dl.dataset.en;if(!confirm('Удалить «'+en+'» из списка?'))return;cus=cus.filter(n=>n!==en);save('tv-custom',cus);const i=S.findIndex(r=>r[2]===en&&r[8]);if(i>=0)S.splice(i,1);delete ov[en];delete tvr[en];save('tv-marks',ov);save('tv-ratings',tvr);check();draw();drawProfile();drawAch();return}
   const m=e.target.closest('.myr');
   if(m){openR=openR===m.dataset.en?null:m.dataset.en;draw();return}
   const s=e.target.closest('.star');
@@ -700,6 +710,11 @@ list.addEventListener('click',e=>{
     if(tvr[en]===v)delete tvr[en];else tvr[en]=v;save('tv-ratings',tvr);draw();drawProfile()}
 });
 tabs.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;cur=b.dataset.k;save('tv-tab',cur);draw()});
+$('addtv').addEventListener('submit',e=>{e.preventDefault();const n=$('addn').value.trim().replace(/\s+/g,' ');if(!n)return;
+  const ex=S.find(x=>x[1].toLowerCase()===n.toLowerCase()||x[2].toLowerCase()===n.toLowerCase());
+  if(ex){ov[ex[2]]=ov[ex[2]]==='w'?'w':'wl';save('tv-marks',ov)}else{cus.push(n);save('tv-custom',cus);S.push(mkC(n));ov[n]='wl';save('tv-marks',ov)}
+  $('addn').value='';cur='wl';save('tv-tab',cur);hot=ex?ex[2]:n;check();draw();drawProfile();drawAch();
+  const el=document.getElementById('tv-'+hot.replace(/\W/g,''));if(el)el.scrollIntoView({block:'center'})});
 $('nxgo').addEventListener('click',()=>{
   const min=+$('nxmin').value;
   const p=S.filter(x=>grp(x)==='wl'&&imdbOf(x)>=min);
@@ -905,6 +920,9 @@ async function attach(u,fresh){
   const srv=p.data||{};
   if(fresh){wipe();for(const k in srv)if(K(k))orig.call(ls,k,srv[k]);location.reload();return}
   ready=true;lb();
+  if(/^andrew$/i.test(nick)&&!ls.getItem('tv-v2')){const O=window.__OWN||{},nm={};let m={};try{m=JSON.parse(ls.getItem('tv-marks'))||{}}catch(e){}
+    for(const k in O)if(O[k]==='w'||O[k]==='wl')nm[k]=O[k];for(const k in m)if(m[k]==='w'||m[k]==='wl')nm[k]=m[k];
+    ls.setItem('tv-marks',JSON.stringify(nm));ls.setItem('tv-v2','1');await push();location.reload()}
 }
 btn.onclick=async()=>{if(user){if(!confirm('Выйти из аккаунта '+nick+'?'))return;await push();await sb.auth.signOut();Object.keys(snap()).forEach(k=>ls.removeItem(k));location.reload()}else show(true)};
 $('authx').onclick=()=>show(false);

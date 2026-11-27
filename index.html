@@ -214,6 +214,7 @@ html{scrollbar-gutter:stable;overflow-y:scroll}
 .chk[aria-pressed=true]::before{background:var(--fg);border-color:var(--fg);color:var(--on-accent)}
 .imdb{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border-radius:3px;border:1px solid var(--line-2);color:var(--fg);font:500 12px var(--mono);letter-spacing:.06em;text-decoration:none;white-space:nowrap}
 .imdb:hover{border-color:var(--fg)}
+.imdb.y{background:#F5C518;border-color:#F5C518;color:#121212;gap:6px;letter-spacing:.02em}.imdb.y b{font-weight:600;font-size:13px}.imdb.y:hover{background:#ffd43b;border-color:#ffd43b}
 .cats .stk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;padding:24px}
 .stk img{width:100%;height:auto;display:block;transition:transform .25s}
 .stk img:hover{transform:translateY(-4px)}
@@ -480,6 +481,31 @@ const S=[
 ['wl','Дом дракона','House of the Dragon',2022,'S3 · IMDb 8,3','date','S4 финальный, выход в 2028','tt11198330'],
 ['wl','Рыцарь Семи Королевств','A Knight of the Seven Kingdoms',2026,'S1 · IMDb 8,8','ren','S2 снят, дата не объявлена','tt27497448'],
 ['wl','Кольца власти','The Lord of the Rings: The Rings of Power',2022,'S3 · IMDb 6,9','new','Выходит S3 с 11 ноября 2026','tt7631058'],
+['wl','Декстер','Dexter',2006,'IMDb 8,6','ended','Завершен','tt0773262'],
+['wl','Во все тяжкие','Breaking Bad',2008,'IMDb 9,5','ended','Завершен','tt0903747'],
+['wl','Прослушка','The Wire',2002,'IMDb 9,3','ended','Завершен','tt0306414'],
+['wl','Наследники','Succession',2018,'IMDb 8,8','ended','Завершен','tt7660850'],
+['wl','Подпольная империя','Boardwalk Empire',2010,'IMDb 8,6','ended','Завершен','tt0979432'],
+['wl','Американцы','The Americans',2013,'IMDb 8,4','ended','Завершен','tt2149175'],
+['wl','Медленные лошади','Slow Horses',2022,'S6 · IMDb 8,3','ren','Продлен на S7, дата не объявлена','tt5875444'],
+['wl','Однажды ночью','The Night Of',2016,'IMDb 8,4','ended','Мини-сериал','tt2401256'],
+['wl','Сыны анархии','Sons of Anarchy',2008,'IMDb 8,5','ended','Завершен','tt1124373'],
+['wl','Сайнфелд','Seinfeld',1989,'IMDb 8,9','ended','Завершен','tt0098904'],
+['wl','Умерь свой энтузиазм','Curb Your Enthusiasm',2000,'IMDb 8,8','ended','Завершен','tt0264235'],
+['wl','Клиника','Scrubs',2001,'IMDb 8,4','new','Выходит S2 возрождения с 30 сентября 2026','tt0285403'],
+['wl','Бруклин 9-9','Brooklyn Nine-Nine',2013,'IMDb 8,4','ended','Завершен','tt2467372'],
+['wl','Дрянь','Fleabag',2016,'IMDb 8,7','ended','Завершен','tt5687612'],
+['wl','Барри','Barry',2018,'IMDb 8,3','ended','Завершен','tt5348176'],
+['wl','Очень странные дела','Stranger Things',2016,'IMDb 8,6','ended','Завершен','tt4574334'],
+['wl','Пространство','The Expanse',2015,'IMDb 8,5','ended','Завершен','tt3230854'],
+['wl','Укрытие','Silo',2023,'S3 · IMDb 8,1','ren','S4 финальный, дата не объявлена','tt14688458'],
+['wl','Андор','Andor',2022,'IMDb 8,6','ended','Завершен','tt9253284'],
+['wl','Аркейн','Arcane',2021,'IMDb 9,0','ended','Завершен','tt11126994'],
+['wl','Питт','The Pitt',2025,'S2 · IMDb 8,9','date','S3 выходит в январе 2027','tt31938062'],
+['wl','Переходный возраст','Adolescence',2025,'IMDb 8,1','ended','Мини-сериал','tt31806037'],
+['wl','Белый лотос','The White Lotus',2021,'S3 · IMDb 8,0','ren','S4 снят, выход ожидается в 2027','tt13406094'],
+['wl','Рипли','Ripley',2024,'IMDb 8,1','ended','Мини-сериал','tt11016042'],
+['wl','Олененок','Baby Reindeer',2024,'IMDb 7,7','ended','Мини-сериал','tt13649112'],
 ];
 
 /* ---------- состояние ---------- */
@@ -656,8 +682,8 @@ function draw(){
   list.innerHTML=S.filter(x=>inTab(x,cur)).map(x=>{
     const [,ru,en,y,note,stt,txt,id]=x,g=grp(x),onw=g==='w',r=tvr[en]||0;
     return `<li class="show${hot===en?' hot':''}" id="tv-${en.replace(/\W/g,'')}"><button class="chk" data-en="${esc(en)}" aria-pressed="${onw}" aria-label="${onw?'Убрать из посмотренных':'Отметить как посмотренный'}: ${esc(ru)}"></button>
-    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${imdbOf(x)?`<span class="imdbr">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b></span>`:''}${note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim()?`<span class="note2">${esc(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</span>`:''}</div></div>
-    <div class="acts"><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button><a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a></div>
+    <div><h3>${esc(ru)} <span class="en">(${esc(en)}), ${y}</span></h3><div class="meta"><span class="badge ${CL[stt]}">${esc(txt)}</span>${note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim()?`<span class="note2">${esc(note.replace(/\s*·?\s*IMDb \d+,\d/,'').trim())}</span>`:''}</div></div>
+    <div class="acts"><button class="myr${r?' has':''}" data-en="${esc(en)}" aria-expanded="${openR===en}">${r?`★ ${r}/10`:'☆ Оценить'}</button>${imdbOf(x)?`<a class="imdb y" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb <b>${imdbOf(x).toFixed(1).replace('.',',')}</b> ↗</a>`:`<a class="imdb" href="${link(id,en,y)}" target="_blank" rel="noopener">IMDb ↗</a>`}</div>
     ${openR===en?`<div class="rrow"><span class="label">Моя оценка</span><div class="stars">${stars(r,'tv:'+esc(en))}</div><span class="rv num">${r?`<b>${r}</b>/10`:''}</span></div>`:''}</li>`}).join('');
 }
 list.addEventListener('click',e=>{

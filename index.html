@@ -897,11 +897,12 @@ async function lb(){const el=$('lb');if(!el)return;const {data}=await sb.rpc('le
   el.innerHTML=(data&&data.length)?data.map((r,i)=>`<li><span>${i+1}. ${String(r.nick).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span><span>${r.best_himym} · ${r.best_bcs}</span></li>`).join(''):'<li><span>Пока никого</span></li>'}
 async function attach(u,fresh){
   user=u;const {data:p}=await sb.from('profiles').select('nick,data').eq('id',u.id).maybeSingle();
-  if(!p){nick=(u.user_metadata&&u.user_metadata.nick)||'Игрок';await sb.from('profiles').insert({id:u.id,nick,data:snap(),...stats()});ready=true;paint();lb();return}
+  const wipe=()=>Object.keys(snap()).forEach(k=>ls.removeItem(k));
+  if(!p){nick=(u.user_metadata&&u.user_metadata.nick)||'Игрок';await sb.from('profiles').insert({id:u.id,nick,data:{},eps:0,best_himym:0,best_bcs:0});wipe();location.reload();return}
   nick=p.nick;paint();
   const srv=p.data||{};
-  if(fresh&&Object.keys(srv).length){Object.keys(snap()).forEach(k=>ls.removeItem(k));for(const k in srv)if(K(k))orig.call(ls,k,srv[k]);location.reload();return}
-  ready=true;dirty=!Object.keys(srv).length;lb();
+  if(fresh){wipe();for(const k in srv)if(K(k))orig.call(ls,k,srv[k]);location.reload();return}
+  ready=true;lb();
 }
 btn.onclick=async()=>{if(user){if(!confirm('Выйти из аккаунта '+nick+'?'))return;await push();await sb.auth.signOut();Object.keys(snap()).forEach(k=>ls.removeItem(k));location.reload()}else show(true)};
 $('authx').onclick=()=>show(false);

@@ -709,11 +709,16 @@ $('nxgo').addEventListener('click',()=>{
 });
 
 /* ---------- вкладки страницы ---------- */
-const show=()=>{const v=location.hash==='#series'?'series':location.hash==='#game'?'game':'roll';
+const PATHS=/netlify\.app$/.test(location.hostname),VIEWS=['roll','series','game'];
+const show=()=>{const k=PATHS?location.pathname.replace(/^\/|\/$/g,''):location.hash.slice(1);const v=VIEWS.includes(k)?k:'roll';
   $('v-roll').hidden=v!=='roll';$('v-series').hidden=v!=='series';$('v-game').hidden=v!=='game';
   document.querySelectorAll('#nav a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(window.scrollY>60)window.scrollTo(0,0)};
 window.addEventListener('hashchange',show);
+if(PATHS){document.querySelectorAll('#nav a').forEach(a=>a.setAttribute('href','/'+a.dataset.v));
+  const h=location.hash.slice(1);if(VIEWS.includes(h))history.replaceState(null,'','/'+h);
+  $('nav').addEventListener('click',e=>{const a=e.target.closest('a[data-v]');if(!a||e.metaKey||e.ctrlKey)return;e.preventDefault();if(location.pathname!=='/'+a.dataset.v)history.pushState(null,'','/'+a.dataset.v);show()});
+  window.addEventListener('popstate',show)}
 
 check();drawAll();draw();show();
 }
